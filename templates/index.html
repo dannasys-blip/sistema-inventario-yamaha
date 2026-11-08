@@ -2,69 +2,460 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario - Yamaha</title>
-    <!-- Bootstrap CSS para un diseño limpio y corporativo -->
+    <title>Inventario Yamaha - Gestión de Personal y Activos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar-custom { background-color: #1F4E78; }
+        .card-custom { border-radius: 10px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .badge-local { background-color: #0d6efd; }
+        .badge-provincia { background-color: #fd7e14; }
+        .img-thumb { width: 35px; height: 35px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; margin-right: 2px; }
+    </style>
+    <script>
+        const tecnicosDB = {{ tecnicos_json | safe }};
+        const empleadosDB = {{ empleados_json | safe }};
+
+        function seleccionarTecnico(selectEl, nombreInputId) {
+            let dni = selectEl.value;
+            if (tecnicosDB[dni]) {
+                document.getElementById(nombreInputId).value = tecnicosDB[dni].Nombre;
+            } else {
+                document.getElementById(nombreInputId).value = "";
+            }
+        }
+
+        function seleccionarEmpleado(selectEl, nombreInputId, cargoInputId, firmaInputId) {
+            let dni = selectEl.value;
+            if (empleadosDB[dni]) {
+                let emp = empleadosDB[dni];
+                document.getElementById(nombreInputId).value = emp.Nombre;
+                document.getElementById(cargoInputId).value = emp.Cargo;
+                if(firmaInputId) document.getElementById(firmaInputId).value = dni;
+            } else {
+                document.getElementById(nombreInputId).value = "";
+                document.getElementById(cargoInputId).value = "";
+            }
+        }
+
+        function actualizarCampos(tipoSelect, prefix) {
+            let tipo = tipoSelect.value;
+            let lbl1 = document.getElementById(prefix + '_lbl1');
+            let lbl2 = document.getElementById(prefix + '_lbl2');
+            let lbl3 = document.getElementById(prefix + '_lbl3');
+
+            if (!lbl1 || !lbl2 || !lbl3) return;
+
+            if (tipo === 'Laptop' || tipo === 'PC de Escritorio') {
+                lbl1.innerText = "Procesador";
+                lbl2.innerText = "Memoria RAM";
+                lbl3.innerText = "Almacenamiento / Hostname";
+            } else if (tipo === 'Impresora') {
+                lbl1.innerText = "Tipo de Tóner / Tinta";
+                lbl2.innerText = "Conectividad (USB/Red)";
+                lbl3.innerText = "ShareName / Driver";
+            } else if (tipo === 'Switch / Red') {
+                lbl1.innerText = "N° de Puertos";
+                lbl2.innerText = "Capacidad (L2/L3)";
+                lbl3.innerText = "VLAN / Configuración";
+            } else if (tipo === 'Celular') {
+                lbl1.innerText = "N° IMEI";
+                lbl2.innerText = "Línea / Operador";
+                lbl3.innerText = "Almacenamiento";
+            } else if (tipo === 'Televisor (TV)') {
+                lbl1.innerText = "Pulgadas de Pantalla";
+                lbl2.innerText = "Resolución";
+                lbl3.innerText = "Tecnología / Smart TV";
+            }
+        }
+    </script>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <h2 class="mb-4 text-center text-primary">Sistema de Inventario Yamaha</h2>
-
-        <!-- Formulario para agregar productos -->
-        <div class="card shadow p-4 mb-4">
-            <h4>Registrar Nuevo Artículo</h4>
-            <form action="/agregar" method="POST" class="row g-3 mt-2">
-                <div class="col-md-3">
-                    <label class="form-label">Código</label>
-                    <input type="text" name="codigo" class="form-control" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Artículo</label>
-                    <input type="text" name="articulo" class="form-control" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Cantidad</label>
-                    <input type="number" name="cantidad" class="form-control" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Sucursal</label>
-                    <input type="text" name="sucursal" class="form-control" required>
-                </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-success">Guardar en Inventario</button>
-                </div>
-            </form>
+<body>
+    <nav class="navbar navbar-dark navbar-custom mb-4">
+        <div class="container d-flex justify-content-between">
+            <span class="navbar-brand mb-0 h1"><i class="bi bi-shield-check me-2"></i> YAMAHA - SISTEMA INTEGRADO DE INVENTARIO Y PERSONAL</span>
+            <span class="text-white small">Gestión Local y Provincias</span>
         </div>
+    </nav>
 
-        <!-- Tabla de registros -->
-        <div class="card shadow p-4">
-            <h4>Inventario Actual</h4>
-            <table class="table table-striped mt-3">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Código</th>
-                        <th>Artículo</th>
-                        <th>Cantidad</th>
-                        <th>Sucursal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in inventario %}
-                    <tr>
-                        <td>{{ item.Codigo }}</td>
-                        <td>{{ item.Articulo }}</td>
-                        <td>{{ item.Cantidad }}</td>
-                        <td>{{ item.Sucursal }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">No hay registros en el inventario.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="container pb-5">
+        <ul class="nav nav-tabs mb-4" id="inventarioTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="activos-tab" data-bs-toggle="tab" data-bs-target="#activos-content" type="button" role="tab"><i class="bi bi-laptop me-1"></i> Inventario de Activos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-success" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal-content" type="button" role="tab"><i class="bi bi-people-fill me-1"></i> Módulo de Personal (Técnicos y Empleados)</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="inventarioTabContent">
+            <div class="tab-pane fade show active" id="activos-content" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <div class="card card-custom p-4 h-100">
+                            <h5 class="fw-bold mb-2"><i class="bi bi-cloud-upload text-primary me-2"></i>Cargar Fichas PDF</h5>
+                            <p class="text-muted small">Sube archivos PDF para generar código correlativo automático (ej: <code>INV-2026-0001</code>).</p>
+                            <form action="/upload" method="post" enctype="multipart/form-data" class="row g-2 mt-auto">
+                                <div class="col-12">
+                                    <input type="file" name="files" class="form-control form-control-sm" multiple accept=".pdf" required>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i> Subir PDFs</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card card-custom p-4 h-100 bg-light border border-primary-subtle">
+                            <h5 class="fw-bold mb-2"><i class="bi bi-plus-circle-fill text-success me-2"></i>Registro Manual de Activos</h5>
+                            <p class="text-muted small">Selecciona personal previamente registrado por DNI para asociarlo al activo.</p>
+                            <div class="mt-auto text-end">
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoActivo">
+                                    <i class="bi bi-plus-lg me-1"></i> Nuevo Activo Manual
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card card-custom p-3 bg-white border-start border-primary border-4">
+                            <span class="text-muted small fw-bold">TOTAL ACTIVOS</span>
+                            <h3 class="fw-bold text-primary mb-0">{{ total_equipos }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card card-custom p-3 bg-white border-start border-info border-4">
+                            <span class="text-muted small fw-bold">SEDE LOCAL (LIMA)</span>
+                            <h3 class="fw-bold text-info mb-0">{{ total_local }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card card-custom p-3 bg-white border-start border-warning border-4">
+                            <span class="text-muted small fw-bold">PROVINCIAS</span>
+                            <h3 class="fw-bold text-warning mb-0">{{ total_provincia }}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Consolidado de Activos Vigentes</h5>
+                        {% if total_equipos > 0 %}
+                        <a href="/download_excel" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-excel me-1"></i> Descargar Excel Oficial</a>
+                        {% endif %}
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fotos</th>
+                                    <th>N° Ficha (ID)</th>
+                                    <th>Perfil / Tipo</th>
+                                    <th>Marca / Modelo</th>
+                                    <th>N° Serie</th>
+                                    <th>Responsable & Personal</th>
+                                    <th>Sede</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in registros %}
+                                <tr>
+                                    <td>
+                                        {% if item.Foto_Equipo and item.Foto_Equipo != 'Sin foto' %}
+                                            {% set fotos = item.Foto_Equipo.split(',') %}
+                                            {% for f in fotos %}
+                                                <a href="/uploads/{{ f.strip() }}" target="_blank">
+                                                    <img src="/uploads/{{ f.strip() }}" class="img-thumb" title="Ver foto">
+                                                </a>
+                                            {% endfor %}
+                                        {% else %}
+                                        <span class="badge bg-light text-muted border">Sin fotos</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code class="text-primary fw-bold">{{ item.N_Ficha }}</code></td>
+                                    <td><span class="badge bg-secondary">{{ item.Tipo_Equipo }}</span></td>
+                                    <td><strong>{{ item.Modelo }}</strong></td>
+                                    <td><code>{{ item.N_Serie }}</code></td>
+                                    <td>
+                                        <strong>{{ item.Responsable }}</strong><br>
+                                        <small class="text-muted">Cargo: {{ item.Cargo }}</small><br>
+                                        <span class="badge bg-light text-dark border mt-1"><i class="bi bi-shield-lock text-primary"></i> TI: {{ item.Firma_Tecnico }}</span>
+                                    </td>
+                                    <td>{{ item.Sede }}<br>
+                                        {% if item.Clasificacion == 'Local' %}
+                                        <span class="badge badge-local">Local</span>
+                                        {% else %}
+                                        <span class="badge badge-provincia">Provincia</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical gap-1" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item.ID_Unico }}">
+                                                <i class="bi bi-pencil-square"></i> Editar
+                                            </button>
+                                            <a href="/imprimir/{{ item.ID_Unico }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-printer"></i> Acta & Ficha
+                                            </a>
+                                            <a href="/delete/{{ item.ID_Unico }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de dar de baja este activo?');">
+                                                <i class="bi bi-trash"></i> Dar Baja
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <div class="modal fade" id="editModal{{ item.ID_Unico }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <form action="/update" method="POST" enctype="multipart/form-data">
+                                                <div class="modal-header bg-primary text-white">
+                                                    <h5 class="modal-title">Editar Activo y Personal: {{ item.N_Ficha }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body row g-3">
+                                                    <input type="hidden" name="id_unico" value="{{ item.ID_Unico }}">
+                                                    
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">N° Ficha (ID)</label>
+                                                        <input type="text" class="form-control bg-light" name="n_ficha" value="{{ item.N_Ficha }}" readonly>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Perfil / Tipo</label>
+                                                        <select class="form-select" name="tipo_equipo" id="tipo_{{ item.ID_Unico }}" onchange="actualizarCampos(this, 'edit_{{ item.ID_Unico }}')">
+                                                            <option value="Laptop" {% if item.Tipo_Equipo == 'Laptop' %}selected{% endif %}>Laptop</option>
+                                                            <option value="PC de Escritorio" {% if item.Tipo_Equipo == 'PC de Escritorio' %}selected{% endif %}>PC de Escritorio</option>
+                                                            <option value="Impresora" {% if item.Tipo_Equipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                                                            <option value="Switch / Red" {% if item.Tipo_Equipo == 'Switch / Red' %}selected{% endif %}>Switch / Red</option>
+                                                            <option value="Celular" {% if item.Tipo_Equipo == 'Celular' %}selected{% endif %}>Celular</option>
+                                                            <option value="Televisor (TV)" {% if item.Tipo_Equipo == 'Televisor (TV)' %}selected{% endif %}>Televisor (TV)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Marca / Modelo</label>
+                                                        <input type="text" class="form-control" name="modelo" value="{{ item.Modelo }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">N° Serie</label>
+                                                        <input type="text" class="form-control" name="n_serie" value="{{ item.N_Serie }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Sede / Ubicación</label>
+                                                        <input type="text" class="form-control" name="sede" value="{{ item.Sede }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Dirección IP</label>
+                                                        <input type="text" class="form-control" name="ip" value="{{ item.IP }}">
+                                                    </div>
+
+                                                    <hr class="mt-2">
+                                                    <h6 class="text-primary fw-bold"><i class="bi bi-person-badge"></i> Seleccionar Técnico Emisor (por DNI)</h6>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-bold">Seleccionar Técnico Registrado</label>
+                                                        <select class="form-select form-select-sm" onchange="seleccionarTecnico(this, 'firma_tec_{{ item.ID_Unico }}')">
+                                                            <option value="">-- Seleccionar Técnico --</option>
+                                                            {% for dni, tec in tecnicos.items() %}
+                                                            <option value="{{ dni }}">{{ dni }} - {{ tec.Nombre }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-bold">Técnico Emisor (TI)</label>
+                                                        <input type="text" id="firma_tec_{{ item.ID_Unico }}" class="form-control form-control-sm" name="firma_tecnico" value="{{ item.Firma_Tecnico }}">
+                                                    </div>
+
+                                                    <hr class="mt-2">
+                                                    <h6 class="text-primary fw-bold"><i class="bi bi-person-check"></i> Seleccionar Empleado / Responsable (por DNI)</h6>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-bold">Seleccionar Empleado</label>
+                                                        <select class="form-select form-select-sm" onchange="seleccionarEmpleado(this, 'resp_{{ item.ID_Unico }}', 'cargo_{{ item.ID_Unico }}', 'firma_emp_{{ item.ID_Unico }}')">
+                                                            <option value="">-- Seleccionar Empleado --</option>
+                                                            {% for dni, emp in empleados.items() %}
+                                                            <option value="{{ dni }}">{{ dni }} - {{ emp.Nombre }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-bold">Nombre Completo</label>
+                                                        <input type="text" id="resp_{{ item.ID_Unico }}" class="form-control form-control-sm" name="responsable" value="{{ item.Responsable }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-bold">Cargo</label>
+                                                        <input type="text" id="cargo_{{ item.ID_Unico }}" class="form-control form-control-sm" name="cargo" value="{{ item.Cargo }}">
+                                                    </div>
+                                                    <input type="hidden" id="firma_emp_{{ item.ID_Unico }}" name="firma_empleado" value="{{ item.Firma_Empleado }}">
+
+                                                    <hr class="mt-2">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Subir Fotos (Máx. 3)</label>
+                                                        <input type="file" name="fotos_equipo" class="form-control form-control-sm" accept=".png, .jpg, .jpeg, .webp" multiple>
+                                                    </div>
+
+                                                    <hr class="mt-2">
+                                                    <h6 class="text-primary fw-bold">Características Específicas</h6>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold" id="edit_{{ item.ID_Unico }}_lbl1">Atributo 1</label>
+                                                        <input type="text" class="form-control" name="atributo_1" value="{{ item.Atributo_1 }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold" id="edit_{{ item.ID_Unico }}_lbl2">Atributo 2</label>
+                                                        <input type="text" class="form-control" name="atributo_2" value="{{ item.Atributo_2 }}">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold" id="edit_{{ item.ID_Unico }}_lbl3">Atributo 3</label>
+                                                        <input type="text" class="form-control" name="atributo_3" value="{{ item.Atributo_3 }}">
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="personal-content" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card card-custom p-4 h-100">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-tools me-2"></i>Técnicos de Soporte TI</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr><th>DNI</th><th>Nombre</th><th>Cargo</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in personal_tecnicos %}
+                                        <tr>
+                                            <td><code>{{ t.DNI }}</code></td>
+                                            <td><strong>{{ t.Nombre }}</strong></td>
+                                            <td><small class="text-muted">{{ t.Cargo }}</small></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card card-custom p-4 h-100">
+                            <h5 class="fw-bold mb-3 text-success"><i class="bi bi-people me-2"></i>Empleados / Responsables</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr><th>DNI</th><th>Nombre</th><th>Cargo</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for e in personal_empleados %}
+                                        <tr>
+                                            <td><code>{{ e.DNI }}</code></td>
+                                            <td><strong>{{ e.Nombre }}</strong></td>
+                                            <td><small class="text-muted">{{ e.Cargo }}</small></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div class="modal fade" id="modalNuevoActivo" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="/agregar_manual" method="POST">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-1"></i> Registrar Nuevo Activo Manualmente</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tipo de Equipo</label>
+                            <select class="form-select" name="tipo_equipo" id="nuevo_tipo" onchange="actualizarCampos(this, 'nuevo')">
+                                <option value="Laptop">Laptop</option>
+                                <option value="PC de Escritorio">PC de Escritorio</option>
+                                <option value="Impresora">Impresora</option>
+                                <option value="Switch / Red">Switch / Red</option>
+                                <option value="Celular">Celular</option>
+                                <option value="Televisor (TV)">Televisor (TV)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Marca / Modelo</label>
+                            <input type="text" class="form-control" name="modelo" required placeholder="Ej: HP ProBook / Dell OptiPlex">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">N° Serie</label>
+                            <input type="text" class="form-control" name="n_serie" required placeholder="N° de serie o S/N">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Sede / Ubicación</label>
+                            <input type="text" class="form-control" name="sede" required value="Sede Central - San Isidro">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Dirección IP</label>
+                            <input type="text" class="form-control" name="ip" value="192.168.1.X">
+                        </div>
+
+                        <hr class="mt-3">
+                        <h6 class="text-success fw-bold"><i class="bi bi-person-badge"></i> Seleccionar Empleado Responsable (por DNI)</h6>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Seleccionar Empleado</label>
+                            <select class="form-select form-select-sm" onchange="seleccionarEmpleado(this, 'nuevo_resp', 'nuevo_cargo', 'nuevo_firma_emp')">
+                                <option value="">-- Seleccionar Empleado --</option>
+                                {% for dni, emp in empleados.items() %}
+                                <option value="{{ dni }}">{{ dni }} - {{ emp.Nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nombre Completo</label>
+                            <input type="text" id="nuevo_resp" class="form-control form-control-sm" name="responsable" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Cargo</label>
+                            <input type="text" id="nuevo_cargo" class="form-control form-control-sm" name="cargo" required>
+                        </div>
+                        <input type="hidden" id="nuevo_firma_emp" name="firma_empleado" value="Pendiente">
+
+                        <hr class="mt-3">
+                        <h6 class="text-success fw-bold">Atributos del Equipo</h6>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" id="nuevo_lbl1">Procesador</label>
+                            <input type="text" class="form-control" name="atributo_1" value="-">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" id="nuevo_lbl2">Memoria RAM</label>
+                            <input type="text" class="form-control" name="atributo_2" value="-">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold" id="nuevo_lbl3">Almacenamiento / Hostname</label>
+                            <input type="text" class="form-control" name="atributo_3" value="-">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm">Registrar Activo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

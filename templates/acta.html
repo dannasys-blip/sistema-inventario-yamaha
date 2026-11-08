@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acta de Entrega - {{ item.N_Ficha }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #fff; color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .border-box { border: 2px solid #1F4E78; padding: 25px; border-radius: 8px; margin-top: 30px; }
+        .header-title { background-color: #1F4E78; color: #fff; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="container my-4">
+        <div class="border-box">
+            <div class="header-title mb-4">
+                <h4>YAMAHA MOTOR DEL PERÚ S.A.</h4>
+                <span>ACTA DE ENTREGA Y ASIGNACIÓN DE ACTIVOS TI ({{ item.N_Ficha }})</span>
+            </div>
+            
+            <p><strong>Fecha de Emisión:</strong> {{ item.Fecha }} &nbsp;|&nbsp; <strong>Sede / Ubicación:</strong> {{ item.Sede }}</p>
+            
+            <h5 class="text-primary mt-4 border-bottom pb-2">1. Datos del Colaborador / Responsable</h5>
+            <div class="row">
+                <div class="col-6"><strong>Apellidos y Nombres:</strong> {{ item.Responsable }}</div>
+                <div class="col-6"><strong>Cargo:</strong> {{ item.Cargo }}</div>
+                <div class="col-6 mt-2"><strong>DNI / ID Empleado:</strong> {{ item.Firma_Empleado }}</div>
+            </div>
+
+            <h5 class="text-primary mt-4 border-bottom pb-2">2. Especificaciones del Activo Asignado</h5>
+            <div class="row">
+                <div class="col-6"><strong>Tipo de Equipo:</strong> {{ item.Tipo_Equipo }}</div>
+                <div class="col-6"><strong>Marca / Modelo:</strong> {{ item.Modelo }}</div>
+                <div class="col-6 mt-2"><strong>Número de Serie:</strong> {{ item.N_Serie }}</div>
+                <div class="col-6 mt-2"><strong>Dirección IP:</strong> {{ item.IP }}</div>
+                <div class="col-6 mt-2"><strong>Atributo 1:</strong> {{ item.Atributo_1 }}</div>
+                <div class="col-6 mt-2"><strong>Atributo 2:</strong> {{ item.Atributo_2 }}</div>
+                <div class="col-6 mt-2"><strong>Atributo 3:</strong> {{ item.Atributo_3 }}</div>
+                <div class="col-6 mt-2"><strong>Estado del Equipo:</strong> {{ item.Estado }}</div>
+            </div>
+
+            <h5 class="text-primary mt-4 border-bottom pb-2">3. Responsabilidad y Términos</h5>
+            <p class="small text-muted mt-2">
+                El colaborador declara recibir el equipo en óptimas condiciones operativas, comprometiéndose a hacer uso exclusivo del mismo para las labores asignadas por la empresa Yamaha, velando por su correcta conservación y seguridad física.
+            </p>
+
+            <div class="row mt-5 pt-4 text-center">
+                <div class="col-6">
+                    <div style="border-top: 1px solid #000; width: 70%; margin: 0 auto; padding-top: 5px;">
+                        <strong>{{ item.Firma_Tecnico }}</strong><br>
+                        <small class="text-muted">Técnico Emisor / Soporte TI</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div style="border-top: 1px solid #000; width: 70%; margin: 0 auto; padding-top: 5px;">
+                        <strong>{{ item.Responsable }}</strong><br>
+                        <small class="text-muted">Firma del Colaborador Receptor</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
