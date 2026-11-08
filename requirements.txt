@@ -1,5 +1,6 @@
-Flask
-pandas
-pypdf
-openpyxl
-gunicorn
+Flask==3.1.0
+gunicorn==23.0.0
+pandas==2.2.3
+openpyxl==3.1.5
+pypdf==5.1.0
+# configuracion para produccion
