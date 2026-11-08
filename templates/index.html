@@ -51,6 +51,21 @@
             </div>
         </div>
 
+        <!-- Panel de Control y Accesos Rápidos (NUEVO REGISTRO Y PERSONAL) -->
+        <div class="row mb-4">
+            <div class="col-md-12 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+                <h5 class="mb-0 text-secondary"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Panel de Control y Gestión</h5>
+                <div>
+                    <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#modalNuevoRegistro">
+                        <i class="fa-solid fa-plus-circle me-1"></i> Nueva Ficha Manual
+                    </button>
+                    <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalPersonal">
+                        <i class="fa-solid fa-users-gear me-1"></i> Gestionar Personal
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Sección de Subida de PDFs / Fichas -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-secondary text-white">
@@ -103,7 +118,6 @@
                                     <td><code>{{ row.N_Serie }}</code></td>
                                     <td>{{ row.IP }}</td>
                                     <td>
-                                        <!-- Visualizador de imágenes provenientes de Cloudinary -->
                                         {% if row.Foto_Equipo and row.Foto_Equipo != 'Sin foto' and row.Foto_Equipo != 'nan' %}
                                             <div class="d-flex flex-wrap gap-1">
                                                 {% for foto_url in row.Foto_Equipo.split(',') %}
@@ -176,7 +190,7 @@
                                                         <input type="text" class="form-control" name="firma_tecnico" value="{{ row.Firma_Tecnico }}">
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label text-primary"><strong>Adjuntar Nuevas Fotos o Actas (Se subirán de forma permanente a la nube)</strong></label>
+                                                        <label class="form-label text-primary"><strong>Adjuntar Nuevas Fotos o Actas (Se subirán a Cloudinary)</strong></label>
                                                         <input type="file" class="form-control" name="fotos_equipo" multiple accept="image/*">
                                                     </div>
                                                 </div>
@@ -200,6 +214,105 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- MODAL: NUEVA FICHA MANUAL (DESDE CERO) -->
+    <div class="modal fade" id="modalNuevoRegistro" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="/add_manual" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fa-solid fa-file-circle-plus me-2"></i> Ingresar Nueva Ficha de Inventario</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">N° Ficha</label>
+                            <input type="text" class="form-control" name="n_ficha" required placeholder="Ej. YAMAHA-001">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" class="form-control" name="fecha" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Sede / Ubicación</label>
+                            <input type="text" class="form-control" name="sede" required placeholder="Lima / Iquitos / Provincia">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Responsable (Colaborador)</label>
+                            <input type="text" class="form-control" name="responsable" required placeholder="Nombre completo">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo</label>
+                            <input type="text" class="form-control" name="cargo" placeholder="Cargo del colaborador">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Equipo</label>
+                            <input type="text" class="form-control" name="tipo_equipo" required placeholder="Laptop, PC, Impresora...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Modelo / Marca</label>
+                            <input type="text" class="form-control" name="modelo" required placeholder="Ej. HP ProBook / Yamaha">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">N° de Serie</label>
+                            <input type="text" class="form-control" name="n_serie" required placeholder="Número de serie">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dirección IP</label>
+                            <input type="text" class="form-control" name="ip" placeholder="192.168.1.X">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Técnico Responsable</label>
+                            <input type="text" class="form-control" name="firma_tecnico" placeholder="Técnico a cargo">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-primary"><strong>Adjuntar Fotos o Actas (Se subirán a Cloudinary)</strong></label>
+                            <input type="file" class="form-control" name="fotos_equipo" multiple accept="image/*">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar Registro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIÓN DE PERSONAL (TÉCNICOS Y EMPLEADOS) -->
+    <div class="modal fade" id="modalPersonal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/add_personal" method="POST">
+                    <div class="modal-header bg-secondary text-white">
+                        <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2"></i> Registrar Técnico o Empleado</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Tipo de Personal</label>
+                            <select class="form-select" name="tipo_personal" required>
+                                <option value="tecnico">Técnico (Soporte)</option>
+                                <option value="empleado">Empleado / Colaborador</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Apellidos y Nombres</label>
+                            <input type="text" class="form-control" name="nombre_personal" required placeholder="Nombre completo">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Cargo / Especialidad</label>
+                            <input type="text" class="form-control" name="cargo_personal" placeholder="Ej. Analista TI o Asistente">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-primary">Registrar Personal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
