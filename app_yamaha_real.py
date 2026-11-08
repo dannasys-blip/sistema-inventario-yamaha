@@ -5,9 +5,18 @@ import pandas as pd
 import pypdf
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = 'yamaha_inventario_personal_separado'
+
+# Configuración de Cloudinary (lee automáticamente las variables de entorno de Render)
+cloudinary.config(
+    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret = os.environ.get('CLOUDINARY_API_SECRET')
+)
 
 UPLOAD_FOLDER = 'reportes_pdf'
 OUTPUT_EXCEL = 'Inventario_Corporativo_Yamaha_Final.xlsx'
@@ -247,19 +256,25 @@ def update_registro():
         sede_val = str(df.at[idx, 'Sede'])
         df.at[idx, 'Clasificacion'] = "Local" if any(l in sede_val.lower() for l in ["lima", "san isidro", "local", "central"]) else "Provincia"
 
+        # Subida de fotos directamente a Cloudinary para persistencia en Render
         files = request.files.getlist('fotos_equipo')
-        nombres_fotos = []
+        urls_fotos = []
         for file in files:
             if file and allowed_file(file.filename):
-                fname = secure_filename(f"{id_unico}_{file.filename}")
-                file.save(os.path.join(UPLOAD_FOLDER, fname))
-                nombres_fotos.append(fname)
-        if nombres_fotos:
+                try:
+                    upload_result = cloudinary.uploader.upload(file)
+                    secure_url = upload_result.get('secure_url')
+                    if secure_url:
+                        urls_fotos.append(secure_url)
+                except Exception as e:
+                    print(f"Error al subir imagen a Cloudinary: {e}")
+
+        if urls_fotos:
             actuales = str(df.at[idx, 'Foto_Equipo'])
             if actuales and actuales != 'Sin foto':
                 lista_act = [f.strip() for f in actuales.split(',')]
-                nombres_fotos = list(set(lista_act + nombres_fotos))
-            df.at[idx, 'Foto_Equipo'] = ','.join(nombres_fotos)
+                urls_fotos = list(set(lista_act + urls_fotos))
+            df.at[idx, 'Foto_Equipo'] = ','.join(urls_fotos)
 
         guardar_registros_base(df)
     return redirect(url_for('index'))

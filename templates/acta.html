@@ -2,63 +2,174 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Acta de Entrega - {{ item.N_Ficha }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta de Entrega - Ficha {{ item.N_Ficha }}</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #fff; color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .border-box { border: 2px solid #1F4E78; padding: 25px; border-radius: 8px; margin-top: 30px; }
-        .header-title { background-color: #1F4E78; color: #fff; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; }
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .sheet-container {
+            max-width: 800px;
+            margin: 30px auto;
+            background: #ffffff;
+            padding: 40px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+        }
+        @media print {
+            body {
+                background-color: #ffffff;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .sheet-container {
+                border: none;
+                box-shadow: none;
+                margin: 0;
+                padding: 20px;
+                max-width: 100%;
+            }
+        }
+        .header-title {
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .table-custom th {
+            background-color: #f1f3f5;
+            width: 30%;
+        }
+        .signature-box {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
-<body onload="window.print()">
-    <div class="container my-4">
-        <div class="border-box">
-            <div class="header-title mb-4">
-                <h4>YAMAHA MOTOR DEL PERÚ S.A.</h4>
-                <span>ACTA DE ENTREGA Y ASIGNACIÓN DE ACTIVOS TI ({{ item.N_Ficha }})</span>
-            </div>
-            
-            <p><strong>Fecha de Emisión:</strong> {{ item.Fecha }} &nbsp;|&nbsp; <strong>Sede / Ubicación:</strong> {{ item.Sede }}</p>
-            
-            <h5 class="text-primary mt-4 border-bottom pb-2">1. Datos del Colaborador / Responsable</h5>
-            <div class="row">
-                <div class="col-6"><strong>Apellidos y Nombres:</strong> {{ item.Responsable }}</div>
-                <div class="col-6"><strong>Cargo:</strong> {{ item.Cargo }}</div>
-                <div class="col-6 mt-2"><strong>DNI / ID Empleado:</strong> {{ item.Firma_Empleado }}</div>
-            </div>
+<body>
 
-            <h5 class="text-primary mt-4 border-bottom pb-2">2. Especificaciones del Activo Asignado</h5>
-            <div class="row">
-                <div class="col-6"><strong>Tipo de Equipo:</strong> {{ item.Tipo_Equipo }}</div>
-                <div class="col-6"><strong>Marca / Modelo:</strong> {{ item.Modelo }}</div>
-                <div class="col-6 mt-2"><strong>Número de Serie:</strong> {{ item.N_Serie }}</div>
-                <div class="col-6 mt-2"><strong>Dirección IP:</strong> {{ item.IP }}</div>
-                <div class="col-6 mt-2"><strong>Atributo 1:</strong> {{ item.Atributo_1 }}</div>
-                <div class="col-6 mt-2"><strong>Atributo 2:</strong> {{ item.Atributo_2 }}</div>
-                <div class="col-6 mt-2"><strong>Atributo 3:</strong> {{ item.Atributo_3 }}</div>
-                <div class="col-6 mt-2"><strong>Estado del Equipo:</strong> {{ item.Estado }}</div>
-            </div>
-
-            <h5 class="text-primary mt-4 border-bottom pb-2">3. Responsabilidad y Términos</h5>
-            <p class="small text-muted mt-2">
-                El colaborador declara recibir el equipo en óptimas condiciones operativas, comprometiéndose a hacer uso exclusivo del mismo para las labores asignadas por la empresa Yamaha, velando por su correcta conservación y seguridad física.
-            </p>
-
-            <div class="row mt-5 pt-4 text-center">
-                <div class="col-6">
-                    <div style="border-top: 1px solid #000; width: 70%; margin: 0 auto; padding-top: 5px;">
-                        <strong>{{ item.Firma_Tecnico }}</strong><br>
-                        <small class="text-muted">Técnico Emisor / Soporte TI</small>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div style="border-top: 1px solid #000; width: 70%; margin: 0 auto; padding-top: 5px;">
-                        <strong>{{ item.Responsable }}</strong><br>
-                        <small class="text-muted">Firma del Colaborador Receptor</small>
-                    </div>
-                </div>
+    <div class="container">
+        <!-- Botones de Acción (No se imprimen) -->
+        <div class="row no-print my-3">
+            <div class="col-12 text-end">
+                <button onclick="window.print();" class="btn btn-primary btn-sm me-2">
+                    <i class="fa-solid fa-print me-1"></i> Imprimir / Guardar PDF
+                </button>
+                <a href="/" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Volver al Inventario
+                </a>
             </div>
         </div>
+
+        <!-- Contenedor Hoja de Acta -->
+        <div class="sheet-container">
+            <!-- Encabezado Corporativo -->
+            <div class="row header-title align-items-center">
+                <div class="col-8">
+                    <h3 class="text-primary mb-1"><i class="fa-solid fa-file-shield me-2"></i> YAMAHA MOTOR</h3>
+                    <p class="text-muted mb-0 small">Soporte Tecnológico e Infraestructura Corporativa</p>
+                </div>
+                <div class="col-4 text-end">
+                    <h5 class="text-dark mb-0"><strong>Ficha: {{ item.N_Ficha }}</strong></h5>
+                    <small class="text-muted">Fecha: {{ item.Fecha }}</small>
+                </div>
+            </div>
+
+            <h4 class="text-center mb-4 text-secondary">ACTA DE ASIGNACIÓN Y ENTREGA DE EQUIPO</h4>
+
+            <p class="mb-4">
+                Conste por el presente documento la entrega formal del activo tecnológico asignado por el área de Soporte TI de Yamaha, sujeto a los términos de uso y responsabilidad de los recursos corporativos.
+            </p>
+
+            <!-- Detalles del Equipo -->
+            <h5 class="text-dark mb-3"><i class="fa-solid fa-laptop me-2 text-primary"></i> 1. Especificaciones del Activo</h5>
+            <table class="table table-bordered table-custom mb-4">
+                <tbody>
+                    <tr>
+                        <th>Tipo de Equipo</th>
+                        <td>{{ item.Tipo_Equipo }}</td>
+                    </tr>
+                    <tr>
+                        <th>Marca / Modelo</th>
+                        <td>{{ item.Modelo }}</td>
+                    </tr>
+                    <tr>
+                        <th>Número de Serie</th>
+                        <td><code>{{ item.N_Serie }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Sede / Ubicación</th>
+                        <td>{{ item.Sede }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dirección IP</th>
+                        <td>{{ item.IP }}</td>
+                    </tr>
+                    <tr>
+                        <th>Estado Actual</th>
+                        <td><span class="badge bg-success">{{ item.Estado }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Datos del Responsable -->
+            <h5 class="text-dark mb-3"><i class="fa-solid fa-user-tie me-2 text-primary"></i> 2. Datos del Colaborador Responsable</h5>
+            <table class="table table-bordered table-custom mb-4">
+                <tbody>
+                    <tr>
+                        <th>Apellidos y Nombres</th>
+                        <td>{{ item.Responsable }}</td>
+                    </tr>
+                    <tr>
+                        <th>Cargo</th>
+                        <td>{{ item.Cargo }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Fotografías o Enlaces Adjuntos en Cloudinary -->
+            <h5 class="text-dark mb-3"><i class="fa-solid fa-images me-2 text-primary"></i> 3. Registro Fotográfico y Actas en la Nube</h5>
+            <div class="mb-5">
+                {% if item.Foto_Equipo and item.Foto_Equipo != 'Sin foto' and item.Foto_Equipo != 'nan' %}
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for foto_url in item.Foto_Equipo.split(',') %}
+                            <a href="{{ foto_url.strip() }}" target="_blank" class="btn btn-outline-dark btn-sm">
+                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Adjunto en Cloudinary
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small">No hay imágenes o actas adjuntas para este registro.</p>
+                {% endif %}
+            </div>
+
+            <!-- Firmas -->
+            <div class="row mt-5 pt-4">
+                <div class="col-6 text-center px-4">
+                    <div class="signature-box">
+                        <p class="mb-0 fw-bold">{{ item.Firma_Tecnico }}</p>
+                        <small class="text-muted">Soporte Técnico TI / Yamaha</small>
+                    </div>
+                </div>
+                <div class="col-6 text-center px-4">
+                    <div class="signature-box">
+                        <p class="mb-0 fw-bold">{{ item.Firma_Empleado }}</p>
+                        <small class="text-muted">Colaborador / Recibí Conforme</small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
