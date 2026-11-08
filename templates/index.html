@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario - Yamaha</title>
+    <!-- Bootstrap CSS para un diseño limpio y corporativo -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center text-primary">Sistema de Inventario Yamaha</h2>
+
+        <!-- Formulario para agregar productos -->
+        <div class="card shadow p-4 mb-4">
+            <h4>Registrar Nuevo Artículo</h4>
+            <form action="/agregar" method="POST" class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <label class="form-label">Código</label>
+                    <input type="text" name="codigo" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Artículo</label>
+                    <input type="text" name="articulo" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sucursal</label>
+                    <input type="text" name="sucursal" class="form-control" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Guardar en Inventario</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla de registros -->
+        <div class="card shadow p-4">
+            <h4>Inventario Actual</h4>
+            <table class="table table-striped mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Artículo</th>
+                        <th>Cantidad</th>
+                        <th>Sucursal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventario %}
+                    <tr>
+                        <td>{{ item.Codigo }}</td>
+                        <td>{{ item.Articulo }}</td>
+                        <td>{{ item.Cantidad }}</td>
+                        <td>{{ item.Sucursal }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No hay registros en el inventario.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
