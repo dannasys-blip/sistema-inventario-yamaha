@@ -217,7 +217,6 @@
 
         window.onload = function() { agregarPeriferico(); };
 
-        // Limpia y oculta almacenamiento/RAM/procesador si se elige impresora, switch o tv
         document.getElementById('tipo_equipo').addEventListener('change', function() {
             const tipo = this.value.toLowerCase();
             const contAlm = document.getElementById('campo_almacenamiento_container');

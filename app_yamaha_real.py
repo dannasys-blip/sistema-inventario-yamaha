@@ -26,19 +26,48 @@ inicializar_csv()
 
 @app.route('/')
 def index():
+    if not os.path.exists(CSV_FILE):
+        inicializar_csv()
+    
     df = pd.read_csv(CSV_FILE)
     registros = []
     for _, row in df.iterrows():
         reg = row.to_dict()
+        
+        # Valores por defecto seguros para evitar errores con esquemas antiguos de CSV
+        if 'estado' not in reg or pd.isna(reg['estado']):
+            reg['estado'] = 'Activo'
+        if 'firma' not in reg or pd.isna(reg['firma']):
+            reg['firma'] = 'Sin Firma'
+        if 'tipo_equipo' not in reg or pd.isna(reg['tipo_equipo']):
+            reg['tipo_equipo'] = 'Laptop'
+        if 'codigo_patrimonial' not in reg:
+            reg['codigo_patrimonial'] = ''
+        if 'marca' not in reg:
+            reg['marca'] = ''
+        if 'modelo' not in reg:
+            reg['modelo'] = ''
+        if 'serie' not in reg:
+            reg['serie'] = ''
+        if 'usuario_asignado' not in reg:
+            reg['usuario_asignado'] = ''
+        if 'area' not in reg:
+            reg['area'] = ''
+        if 'sucursal' not in reg:
+            reg['sucursal'] = 'Lima'
+
         try:
-            reg['perifericos_lista'] = json.loads(reg['perifericos']) if pd.notna(reg['perifericos']) else []
+            reg['perifericos_lista'] = json.loads(str(reg.get('perifericos', ''))) if pd.notna(reg.get('perifericos')) else []
         except:
             reg['perifericos_lista'] = []
+            
         try:
-            reg['fotos_lista'] = json.loads(reg['fotos']) if pd.notna(reg['fotos']) else []
+            reg['fotos_lista'] = json.loads(str(reg.get('fotos', ''))) if pd.notna(reg.get('fotos')) else []
         except:
             reg['fotos_lista'] = []
+            
         registros.append(reg)
+        
     return render_template('index.html', registros=registros)
 
 @app.route('/guardar', methods=['POST'])
@@ -48,10 +77,14 @@ def guardar():
     nuevo_id = int(df['id'].max()) + 1 if not df.empty and not pd.isna(df['id'].max()) else 1
     tipo_equipo = request.form.get('tipo_equipo', '').strip()
     almacenamiento = request.form.get('almacenamiento', '').strip()
+    procesador = request.form.get('procesador', '').strip()
+    memoria_ram = request.form.get('memoria_ram', '').strip()
     
-    # Si es impresora, switch o TV, limpiamos campos de PC/Laptop
+    # Si es impresora, switch o TV, limpiamos campos de hardware internos
     if tipo_equipo.lower() in ['impresora', 'switch', 'tv']:
         almacenamiento = ''
+        procesador = ''
+        memoria_ram = ''
 
     # Periféricos dinámicos
     tipos_p = request.form.getlist('periferico_tipo[]')
@@ -84,8 +117,8 @@ def guardar():
         'marca': request.form.get('marca', '').strip(),
         'modelo': request.form.get('modelo', '').strip(),
         'serie': request.form.get('serie', '').strip(),
-        'procesador': request.form.get('procesador', '').strip(),
-        'memoria_ram': request.form.get('memoria_ram', '').strip(),
+        'procesador': procesador,
+        'memoria_ram': memoria_ram,
         'almacenamiento': almacenamiento,
         'usuario_asignado': request.form.get('usuario_asignado', '').strip(),
         'area': request.form.get('area', '').strip(),
@@ -138,8 +171,8 @@ def generar_pdf(id):
     elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
     data_collab = [
         [Paragraph("<b>N° Ficha:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-08", normal_style)],
-        [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(row['usuario_asignado'], normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(row['area'], normal_style)],
-        [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(row['sucursal'], normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(row['estado'], normal_style)]
+        [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(str(row.get('usuario_asignado', '')), normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(str(row.get('area', '')), normal_style)],
+        [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(str(row.get('estado', '')), normal_style)]
     ]
     t_collab = Table(data_collab, colWidths=[70, 200, 70, 210])
     t_collab.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
@@ -147,12 +180,12 @@ def generar_pdf(id):
     elements.append(Spacer(1, 6))
 
     # 2. Detalle de Equipo Principal[cite: 3]
-    elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row['tipo_equipo']})", section_style))
+    elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row.get('tipo_equipo', '')})", section_style))
     data_eq = [
-        [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(row['tipo_equipo'], normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(row['codigo_patrimonial'], normal_style)],
-        [Paragraph("<b>Marca / Modelo:</b>", normal_style), Paragraph(f"{row['marca']} {row['modelo']}", normal_style), Paragraph("<b>N° Serie:</b>", normal_style), Paragraph(row['serie'], normal_style)],
-        [Paragraph("<b>Procesador:</b>", normal_style), Paragraph(row['procesador'], normal_style), Paragraph("<b>Memoria RAM:</b>", normal_style), Paragraph(row['memoria_ram'], normal_style)],
-        [Paragraph("<b>Almacenamiento:</b>", normal_style), Paragraph(row['almacenamiento'], normal_style), Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(row['sucursal'], normal_style)]
+        [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(str(row.get('tipo_equipo', '')), normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(str(row.get('codigo_patrimonial', '')), normal_style)],
+        [Paragraph("<b>Marca / Modelo:</b>", normal_style), Paragraph(f"{row.get('marca', '')} {row.get('modelo', '')}", normal_style), Paragraph("<b>N° Serie:</b>", normal_style), Paragraph(str(row.get('serie', '')), normal_style)],
+        [Paragraph("<b>Procesador:</b>", normal_style), Paragraph(str(row.get('procesador', '')), normal_style), Paragraph("<b>Memoria RAM:</b>", normal_style), Paragraph(str(row.get('memoria_ram', '')), normal_style)],
+        [Paragraph("<b>Almacenamiento:</b>", normal_style), Paragraph(str(row.get('almacenamiento', '')), normal_style), Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style)]
     ]
     t_eq = Table(data_eq, colWidths=[90, 180, 90, 190])
     t_eq.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
@@ -189,7 +222,7 @@ def generar_pdf(id):
 
     # 7. Observaciones[cite: 3]
     elements.append(Paragraph("7. OBSERVACIONES Y SOPORTE", section_style))
-    obs_text = row['observaciones'] if row['observaciones'] else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
+    obs_text = row.get('observaciones', '') if str(row.get('observaciones', '')).strip() else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
     data_obs = [[Paragraph(obs_text, normal_style)]]
     t_obs = Table(data_obs, colWidths=[550])
     t_obs.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('PADDING', (0,0), (-1,-1), 5)]))
@@ -214,7 +247,7 @@ def generar_pdf(id):
     data_firmas = [
         [Paragraph("________________________________________", normal_style), Paragraph("________________________________________", normal_style)],
         [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br>Responsable Soporte TI", normal_style), 
-         Paragraph(f"<b>{row['firma']}</b><br>Trabajador / Responsable<br><b>Recí Conforme</b>", normal_style)]
+         Paragraph(f"<b>{row.get('firma', '')}</b><br>Trabajador / Responsable<br><b>Recí Conforme</b>", normal_style)]
     ]
     t_firmas = Table(data_firmas, colWidths=[275, 275])
     t_firmas.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
