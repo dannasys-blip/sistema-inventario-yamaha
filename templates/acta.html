@@ -4,59 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acta de Entrega - Ficha {{ item.N_Ficha }}</title>
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-            color: #333;
-        }
-        .sheet-container {
-            max-width: 800px;
-            margin: 30px auto;
-            background: #ffffff;
-            padding: 40px;
-            border: 1px solid #dee2e6;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05);
-        }
+        body { background-color: #f8f9fa; color: #333; }
+        .sheet-container { max-width: 800px; margin: 30px auto; background: #ffffff; padding: 40px; border: 1px solid #dee2e6; box-shadow: 0 0 15px rgba(0,0,0,0.05); }
         @media print {
-            body {
-                background-color: #ffffff;
-            }
-            .no-print {
-                display: none !important;
-            }
-            .sheet-container {
-                border: none;
-                box-shadow: none;
-                margin: 0;
-                padding: 20px;
-                max-width: 100%;
-            }
+            body { background-color: #ffffff; }
+            .no-print { display: none !important; }
+            .sheet-container { border: none; box-shadow: none; margin: 0; padding: 20px; max-width: 100%; }
         }
-        .header-title {
-            border-bottom: 2px solid #0d6efd;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-        .table-custom th {
-            background-color: #f1f3f5;
-            width: 30%;
-        }
-        .signature-box {
-            border-top: 1px solid #333;
-            margin-top: 60px;
-            padding-top: 10px;
-            text-align: center;
-        }
+        .header-title { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 25px; }
+        .table-custom th { background-color: #f1f3f5; width: 32%; }
+        .signature-box { border-top: 1px solid #333; margin-top: 40px; padding-top: 10px; text-align: center; }
+        .digital-sig { max-height: 80px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Botones de Acción (No se imprimen) -->
         <div class="row no-print my-3">
             <div class="col-12 text-end">
                 <button onclick="window.print();" class="btn btn-primary btn-sm me-2">
@@ -68,7 +34,6 @@
             </div>
         </div>
 
-        <!-- Contenedor Hoja de Acta -->
         <div class="sheet-container">
             <div class="row header-title align-items-center">
                 <div class="col-8">
@@ -81,17 +46,17 @@
                 </div>
             </div>
 
-            <h4 class="text-center mb-4 text-secondary">ACTA DE ASIGNACIÓN Y ENTREGA DE EQUIPO</h4>
+            <h4 class="text-center mb-4 text-secondary">ACTA DE ASIGNACIÓN Y ENTREGA MULTIDISPOSITIVO</h4>
 
             <p class="mb-4">
-                Conste por el presente documento la entrega formal del activo tecnológico asignado por el área de Soporte TI de Yamaha, sujeto a los términos de uso y responsabilidad de los recursos corporativos.
+                Conste por el presente documento la entrega formal de los activos tecnológicos y periféricos asignados por el área de Soporte TI de Yamaha, sujetos a los términos de uso corporativo.
             </p>
 
-            <h5 class="text-dark mb-3"><i class="fa-solid fa-laptop me-2 text-primary"></i> 1. Especificaciones del Activo</h5>
+            <h5 class="text-dark mb-3"><i class="fa-solid fa-laptop me-2 text-primary"></i> 1. Especificaciones Técnicas del Activo</h5>
             <table class="table table-bordered table-custom mb-4">
                 <tbody>
                     <tr>
-                        <th>Tipo de Equipo</th>
+                        <th>Tipo de Dispositivo</th>
                         <td>{{ item.Tipo_Equipo }}</td>
                     </tr>
                     <tr>
@@ -111,6 +76,26 @@
                         <td>{{ item.IP }}</td>
                     </tr>
                     <tr>
+                        <th>Sistema Operativo</th>
+                        <td>{{ item.Sistema_Operativo }}</td>
+                    </tr>
+                    <tr>
+                        <th>IMEI / Detalle Específico</th>
+                        <td>{{ item.IMEI_o_Detalle }}</td>
+                    </tr>
+                    <tr>
+                        <th>CPU / RAM / BUS</th>
+                        <td>{{ item.Procesador_RAM }}</td>
+                    </tr>
+                    <tr>
+                        <th>Periféricos Asignados</th>
+                        <td>{{ item.Perifericos }}</td>
+                    </tr>
+                    <tr>
+                        <th>Observaciones</th>
+                        <td>{{ item.Observaciones }}</td>
+                    </tr>
+                    <tr>
                         <th>Estado Actual</th>
                         <td><span class="badge bg-success">{{ item.Estado }}</span></td>
                     </tr>
@@ -121,7 +106,7 @@
             <table class="table table-bordered table-custom mb-4">
                 <tbody>
                     <tr>
-                        <th>Apellidos y Nombres</th>
+                        <th>Apellidos y Nombres (DNI)</th>
                         <td>{{ item.Responsable }}</td>
                     </tr>
                     <tr>
@@ -131,18 +116,18 @@
                 </tbody>
             </table>
 
-            <h5 class="text-dark mb-3"><i class="fa-solid fa-images me-2 text-primary"></i> 3. Registro Fotográfico y Actas en la Nube</h5>
-            <div class="mb-5">
+            <h5 class="text-dark mb-3"><i class="fa-solid fa-images me-2 text-primary"></i> 3. Registro Fotográfico Organizado en Cloudinary</h5>
+            <div class="mb-4">
                 {% if item.Foto_Equipo and item.Foto_Equipo != 'Sin foto' and item.Foto_Equipo != 'nan' %}
                     <div class="d-flex flex-wrap gap-2">
                         {% for foto_url in item.Foto_Equipo.split(',') %}
                             <a href="{{ foto_url.strip() }}" target="_blank" class="btn btn-outline-dark btn-sm">
-                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Adjunto en Cloudinary
+                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Foto Ficha {{ item.N_Ficha }}
                             </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted small">No hay imágenes o actas adjuntas para este registro.</p>
+                    <p class="text-muted small">No hay imágenes adjuntas para este registro.</p>
                 {% endif %}
             </div>
 
@@ -155,6 +140,9 @@
                 </div>
                 <div class="col-6 text-center px-4">
                     <div class="signature-box">
+                        {% if item.Firma_Digital_Empleado %}
+                            <img src="{{ item.Firma_Digital_Empleado }}" class="digital-sig mb-1" alt="Firma Digital">
+                        {% endif %}
                         <p class="mb-0 fw-bold">{{ item.Firma_Empleado }}</p>
                         <small class="text-muted">Colaborador / Recibí Conforme</small>
                     </div>
