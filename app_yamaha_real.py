@@ -1,269 +1,241 @@
-import os
-import uuid
+from flask import Flask, render_template, request, redirect, url_for, make_response
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, send_file
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-from datetime import datetime
+import os
+import json
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import io
 
 app = Flask(__name__)
 
-cloudinary.config(
-    cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    api_key = os.environ.get('CLOUDINARY_API_KEY'),
-    api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
-    secure = True
-)
+CSV_FILE = 'base_datos_yamaha_final.csv'
 
-DB_CSV = 'base_datos_yamaha_final.csv'
-TECNICOS_CSV = 'personal_tecnicos.csv'
-EMPLEADOS_CSV = 'personal_empleados.csv'
-EXCEL_OUTPUT = 'Inventario_Corporativo_Yamaha_Final.xlsx'
+def inicializar_csv():
+    if not os.path.exists(CSV_FILE):
+        columnas = [
+            'id', 'tipo_equipo', 'codigo_patrimonial', 'marca', 'modelo', 
+            'serie', 'procesador', 'memoria_ram', 'almacenamiento', 
+            'usuario_asignado', 'area', 'sucursal', 'estado', 'perifericos', 'observaciones', 'fotos', 'firma'
+        ]
+        df = pd.DataFrame(columns=columnas)
+        df.to_csv(CSV_FILE, index=False)
 
-def inicializar_archivos():
-    if not os.path.exists(DB_CSV):
-        pd.DataFrame(columns=[
-            'ID_Unico', 'N_Ficha', 'Fecha', 'Sede', 'ID_Trabajador', 'Responsable', 'Area', 'Cargo', 'Correo',
-            'Tipo_Equipo', 'Marca_Modelo', 'N_Serie', 'Sistema_Operativo', 'Version_SO', 'Procesador',
-            'Memoria_RAM', 'Part_Number', 'Hostname', 'Direccion_IP', 'Direccion_MAC', 'Tipo_Conexion', 
-            'Punto_Red', 'Estado', 'Disco_Almacenamiento', 'Impresora_Instalada',
-            'Switch_Puertos', 'Switch_Gestionable', 'Impresora_PuertoIP', 'TV_Pulgadas', 'TV_Resolucion',
-            'Incluye_Celular', 'Celular_MarcaModelo', 'Celular_IMEI', 'Celular_Telefono', 
-            'Celular_RAM', 'Celular_Almacenamiento', 'Celular_Procesador', 'Celular_SO', 
-            'Celular_Accesorios', 'Celular_EstadoFisico',
-            'Observaciones', 'Firma_Tecnico', 'Firma_Digital_Tecnico', 'Firma_Empleado', 'Firma_Digital_Empleado', 'Foto_Equipo',
-            # Campos de Baja estilo SUNAT
-            'Estado_Ficha', 'Motivo_Baja'
-        ]).to_csv(DB_CSV, index=False)
-    
-    if not os.path.exists(TECNICOS_CSV):
-        pd.DataFrame(columns=['Nombre', 'Especialidad', 'Firma_Digital']).to_csv(TECNICOS_CSV, index=False)
-        
-    if not os.path.exists(EMPLEADOS_CSV):
-        pd.DataFrame(columns=['ID_Empleado', 'Nombre', 'Area', 'Cargo', 'Correo']).to_csv(EMPLEADOS_CSV, index=False)
-
-inicializar_archivos()
-
-def generar_codigo_ficha():
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV)
-        siguiente_num = len(df) + 1
-    else:
-        siguiente_num = 1
-    anio_actual = datetime.now().strftime('%Y')
-    return f"INV-{anio_actual}-{siguiente_num:03d}"
+inicializar_csv()
 
 @app.route('/')
 def index():
+    df = pd.read_csv(CSV_FILE)
     registros = []
-    total_equipos = total_local = total_provincia = 0
-    tecnicos = []
-    empleados = []
-    siguiente_ficha = generar_codigo_ficha()
+    for _, row in df.iterrows():
+        reg = row.to_dict()
+        try:
+            reg['perifericos_lista'] = json.loads(reg['perifericos']) if pd.notna(reg['perifericos']) else []
+        except:
+            reg['perifericos_lista'] = []
+        try:
+            reg['fotos_lista'] = json.loads(reg['fotos']) if pd.notna(reg['fotos']) else []
+        except:
+            reg['fotos_lista'] = []
+        registros.append(reg)
+    return render_template('index.html', registros=registros)
 
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV).fillna('')
-        registros = df.to_dict(orient='records')
-        total_equipos = len(df[df['Estado_Ficha'] != 'ANULADO'])
-        total_local = len(df[(df['Sede'].astype(str).str.contains('Lima|Central|San Isidro', case=False, na=False)) & (df['Estado_Ficha'] != 'ANULADO')])
-        total_provincia = total_equipos - total_local
-
-    if os.path.exists(TECNICOS_CSV):
-        tecnicos = pd.read_csv(TECNICOS_CSV).fillna('').to_dict(orient='records')
-
-    if os.path.exists(EMPLEADOS_CSV):
-        empleados = pd.read_csv(EMPLEADOS_CSV).fillna('').to_dict(orient='records')
-
-    return render_template('index.html', 
-                           registros=registros, 
-                           total_equipos=total_equipos, 
-                           total_local=total_local, 
-                           total_provincia=total_provincia,
-                           tecnicos=tecnicos,
-                           empleados=empleados,
-                           siguiente_ficha=siguiente_ficha)
-
-@app.route('/add_manual', methods=['POST'])
-def add_manual():
-    n_ficha = generar_codigo_ficha()
-    fecha = request.form.get('fecha')
-    sede = request.form.get('sede')
-    id_trabajador = request.form.get('id_trabajador', '')
-    responsable = request.form.get('responsable', '')
-    area = request.form.get('area', '')
-    cargo = request.form.get('cargo', '')
-    correo = request.form.get('correo', '')
+@app.route('/guardar', methods=['POST'])
+def guardar():
+    df = pd.read_csv(CSV_FILE)
     
-    tipo_equipo = request.form.get('tipo_equipo', 'Laptop')
-    marca_modelo = request.form.get('marca_modelo', '')
-    n_serie = request.form.get('n_serie', '')
-    sistema_operativo = request.form.get('sistema_operativo', '')
-    version_so = request.form.get('version_so', '')
-    procesador = request.form.get('procesador', '')
-    memoria_ram = request.form.get('memoria_ram', '')
-    part_number = request.form.get('part_number', '')
-    hostname = request.form.get('hostname', '')
-    direccion_ip = request.form.get('direccion_ip', '')
-    direccion_mac = request.form.get('direccion_mac', '')
-    tipo_conexion = request.form.get('tipo_conexion', '')
-    punto_red = request.form.get('punto_red', '')
-    estado = request.form.get('estado', 'Operativo')
+    nuevo_id = int(df['id'].max()) + 1 if not df.empty and not pd.isna(df['id'].max()) else 1
+    tipo_equipo = request.form.get('tipo_equipo', '').strip()
+    almacenamiento = request.form.get('almacenamiento', '').strip()
     
-    disco_almacenamiento = request.form.get('disco_almacenamiento', '')
-    impresora_instalada = request.form.get('impresora_instalada', '')
-    
-    switch_puertos = request.form.get('switch_puertos', '')
-    switch_gestionable = request.form.get('switch_gestionable', '')
-    impresora_puertoip = request.form.get('impresora_puertoip', '')
-    tv_pulgadas = request.form.get('tv_pulgadas', '')
-    tv_resolucion = request.form.get('tv_resolucion', '')
+    # Si es impresora, switch o TV, limpiamos campos de PC/Laptop
+    if tipo_equipo.lower() in ['impresora', 'switch', 'tv']:
+        almacenamiento = ''
 
-    incluye_celular = request.form.get('incluye_celular') == 'on'
-    celular_marcamodelo = request.form.get('celular_marcamodelo', '') if incluye_celular else ''
-    celular_imei = request.form.get('celular_imei', '') if incluye_celular else ''
-    celular_telefono = request.form.get('celular_telefono', '') if incluye_celular else ''
-    celular_ram = request.form.get('celular_ram', '') if incluye_celular else ''
-    celular_almacenamiento = request.form.get('celular_almacenamiento', '') if incluye_celular else ''
-    celular_procesador = request.form.get('celular_procesador', '') if incluye_celular else ''
-    celular_so = request.form.get('celular_so', '') if incluye_celular else ''
-    celular_accesorios = request.form.get('celular_accesorios', '') if incluye_celular else ''
-    celular_estadofisico = request.form.get('celular_estadofisico', '') if incluye_celular else ''
-    
-    observaciones = request.form.get('observaciones', '')
-    firma_tecnico = request.form.get('firma_tecnico', '')
-    firma_digital_empleado = request.form.get('firma_digital_empleado', '')
-    id_unico = str(uuid.uuid4())[:8]
+    # Periféricos dinámicos
+    tipos_p = request.form.getlist('periferico_tipo[]')
+    marcas_p = request.form.getlist('periferico_marca[]')
+    modelos_p = request.form.getlist('periferico_modelo[]')
+    series_p = request.form.getlist('periferico_serie[]')
+    estados_p = request.form.getlist('periferico_estado[]')
+    obs_p = request.form.getlist('periferico_obs[]')
 
-    # Resolver firma digital del técnico (Buscando por nombre o por imagen subida en el registro de técnicos)
-    firma_digital_tecnico = ""
-    if os.path.exists(TECNICOS_CSV):
-        df_tec = pd.read_csv(TECNICOS_CSV).fillna('')
-        match_tec = df_tec[df_tec['Nombre'] == firma_tecnico]
-        if not match_tec.empty:
-            firma_digital_tecnico = match_tec.iloc[0]['Firma_Digital']
+    lista_perifericos = []
+    for i in range(len(tipos_p)):
+        if tipos_p[i].strip():
+            lista_perifericos.append({
+                'tipo': tipos_p[i].strip(),
+                'marca': marcas_p[i].strip() if i < len(marcas_p) else '',
+                'modelo': modelos_p[i].strip() if i < len(modelos_p) else '',
+                'serie': series_p[i].strip() if i < len(series_p) else '',
+                'estado': estados_p[i].strip() if i < len(estados_p) else 'Operativo',
+                'observaciones': obs_p[i].strip() if i < len(obs_p) else ''
+            })
 
-    fotos_urls = []
-    archivos = request.files.getlist('fotos_equipo')
-    folder_path = f"Yamaha_Inventario/Ficha_{n_ficha}"
-    
-    for archivo in archivos:
-        if archivo and archivo.filename != '':
-            try:
-                upload_result = cloudinary.uploader.upload(archivo, folder=folder_path)
-                fotos_urls.append(upload_result.get('secure_url'))
-            except Exception as e:
-                print(f"Error subiendo a Cloudinary: {e}")
-
-    foto_equipo_str = ",".join(fotos_urls) if fotos_urls else "Sin foto"
+    # Fotos (URLs o enlaces de Cloudinary)
+    fotos_input = request.form.get('fotos', '').strip()
+    lista_fotos = [f.strip() for f in fotos_input.split('\n') if f.strip()] if fotos_input else []
 
     nuevo_registro = {
-        'ID_Unico': id_unico, 'N_Ficha': n_ficha, 'Fecha': fecha, 'Sede': sede,
-        'ID_Trabajador': id_trabajador, 'Responsable': responsable, 'Area': area, 'Cargo': cargo, 'Correo': correo,
-        'Tipo_Equipo': tipo_equipo, 'Marca_Modelo': marca_modelo, 'N_Serie': n_serie,
-        'Sistema_Operativo': sistema_operativo, 'Version_SO': version_so, 'Procesador': procesador,
-        'Memoria_RAM': memoria_ram, 'Part_Number': part_number, 'Hostname': hostname,
-        'Direccion_IP': direccion_ip, 'Direccion_MAC': direccion_mac, 'Tipo_Conexion': tipo_conexion,
-        'Punto_Red': punto_red, 'Estado': estado, 'Disco_Almacenamiento': disco_almacenamiento,
-        'Impresora_Instalada': impresora_instalada,
-        'Switch_Puertos': switch_puertos, 'Switch_Gestionable': switch_gestionable,
-        'Impresora_PuertoIP': impresora_puertoip, 'TV_Pulgadas': tv_pulgadas, 'TV_Resolucion': tv_resolucion,
-        'Incluye_Celular': 'Sí' if incluye_celular else 'No',
-        'Celular_MarcaModelo': celular_marcamodelo, 'Celular_IMEI': celular_imei, 'Celular_Telefono': celular_telefono,
-        'Celular_RAM': celular_ram, 'Celular_Almacenamiento': celular_almacenamiento, 'Celular_Procesador': celular_procesador,
-        'Celular_SO': celular_so, 'Celular_Accesorios': celular_accesorios, 'Celular_EstadoFisico': celular_estadofisico,
-        'Observaciones': observaciones, 'Firma_Tecnico': firma_tecnico, 'Firma_Digital_Tecnico': firma_digital_tecnico,
-        'Firma_Empleado': responsable, 'Firma_Digital_Empleado': firma_digital_empleado, 'Foto_Equipo': foto_equipo_str,
-        'Estado_Ficha': 'ACTIVO', 'Motivo_Baja': ''
+        'id': nuevo_id,
+        'tipo_equipo': tipo_equipo,
+        'codigo_patrimonial': request.form.get('codigo_patrimonial', '').strip(),
+        'marca': request.form.get('marca', '').strip(),
+        'modelo': request.form.get('modelo', '').strip(),
+        'serie': request.form.get('serie', '').strip(),
+        'procesador': request.form.get('procesador', '').strip(),
+        'memoria_ram': request.form.get('memoria_ram', '').strip(),
+        'almacenamiento': almacenamiento,
+        'usuario_asignado': request.form.get('usuario_asignado', '').strip(),
+        'area': request.form.get('area', '').strip(),
+        'sucursal': request.form.get('sucursal', '').strip(),
+        'estado': request.form.get('estado', 'Activo').strip(),
+        'perifericos': json.dumps(lista_perifericos),
+        'observaciones': request.form.get('observaciones_generales', '').strip(),
+        'fotos': json.dumps(lista_fotos),
+        'firma': request.form.get('firma', '').strip()
     }
-
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV)
-        df = pd.concat([df, pd.DataFrame([nuevo_registro])], ignore_index=True)
-    else:
-        df = pd.DataFrame([nuevo_registro])
     
-    df.to_csv(DB_CSV, index=False)
+    df = pd.concat([df, pd.DataFrame([nuevo_registro])], ignore_index=True)
+    df.to_csv(CSV_FILE, index=False)
+    
     return redirect(url_for('index'))
 
-@app.route('/dar_baja/<id_unico>', methods=['POST'])
-def dar_baja(id_unico):
-    motivo = request.form.get('motivo_baja', 'Sin motivo especificado')
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV)
-        # Actualiza el estado respetando el código de la ficha original
-        df.loc[df['ID_Unico'].astype(str) == str(id_unico), 'Estado_Ficha'] = 'ANULADO'
-        df.loc[df['ID_Unico'].astype(str) == str(id_unico), 'Motivo_Baja'] = motivo
-        df.to_csv(DB_CSV, index=False)
-    return redirect(url_for('index'))
+@app.route('/pdf/<int:id>')
+def generar_pdf(id):
+    df = pd.read_csv(CSV_FILE)
+    reg = df[df['id'] == id]
+    if reg.empty:
+        return "Registro no encontrado", 404
+    
+    row = reg.iloc[0].to_dict()
+    try:
+        perifericos = json.loads(row['perifericos']) if pd.notna(row['perifericos']) else []
+    except:
+        perifericos = []
 
-@app.route('/add_personal', methods=['POST'])
-def add_personal():
-    tipo = request.form.get('tipo_personal')
-    if tipo == 'tecnico':
-        nombre_tec = request.form.get('nombre_tecnico')
-        especialidad = request.form.get('especialidad_tecnico', '')
-        firma_digital_tec = request.form.get('firma_digital_tecnico_reg', '')
+    try:
+        fotos = json.loads(row['fotos']) if pd.notna(row['fotos']) else []
+    except:
+        fotos = []
 
-        # O si subió un archivo PNG para la firma del técnico
-        archivo_firma = request.files.get('archivo_firma_tecnico')
-        if archivo_firma and archivo_firma.filename != '':
-            try:
-                upload_res = cloudinary.uploader.upload(archivo_firma, folder="Yamaha_Firmas_Tecnicos")
-                firma_digital_tec = upload_res.get('secure_url')
-            except Exception as e:
-                print(f"Error subiendo firma PNG: {e}")
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    elements = []
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=13, textColor=colors.HexColor('#003366'), alignment=1, spaceAfter=8)
+    section_style = ParagraphStyle('SectionStyle', parent=styles['Heading2'], fontSize=9, textColor=colors.white, backColor=colors.HexColor('#003366'), spaceAfter=4, leftIndent=4)
+    normal_style = ParagraphStyle('NormalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.black)
+    bold_style = ParagraphStyle('BoldStyle', parent=normal_style, fontName='Helvetica-Bold')
 
-        nuevo_dato = {
-            'Nombre': nombre_tec,
-            'Especialidad': especialidad,
-            'Firma_Digital': firma_digital_tec
-        }
-        file_path = TECNICOS_CSV
+    # Encabezado Oficial
+    elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
+    elements.append(Spacer(1, 5))
+
+    # 1. Datos del Trabajador / Responsable[cite: 3]
+    elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
+    data_collab = [
+        [Paragraph("<b>N° Ficha:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-08", normal_style)],
+        [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(row['usuario_asignado'], normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(row['area'], normal_style)],
+        [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(row['sucursal'], normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(row['estado'], normal_style)]
+    ]
+    t_collab = Table(data_collab, colWidths=[70, 200, 70, 210])
+    t_collab.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
+    elements.append(t_collab)
+    elements.append(Spacer(1, 6))
+
+    # 2. Detalle de Equipo Principal[cite: 3]
+    elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row['tipo_equipo']})", section_style))
+    data_eq = [
+        [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(row['tipo_equipo'], normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(row['codigo_patrimonial'], normal_style)],
+        [Paragraph("<b>Marca / Modelo:</b>", normal_style), Paragraph(f"{row['marca']} {row['modelo']}", normal_style), Paragraph("<b>N° Serie:</b>", normal_style), Paragraph(row['serie'], normal_style)],
+        [Paragraph("<b>Procesador:</b>", normal_style), Paragraph(row['procesador'], normal_style), Paragraph("<b>Memoria RAM:</b>", normal_style), Paragraph(row['memoria_ram'], normal_style)],
+        [Paragraph("<b>Almacenamiento:</b>", normal_style), Paragraph(row['almacenamiento'], normal_style), Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(row['sucursal'], normal_style)]
+    ]
+    t_eq = Table(data_eq, colWidths=[90, 180, 90, 190])
+    t_eq.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
+    elements.append(t_eq)
+    elements.append(Spacer(1, 6))
+
+    # 5. Periféricos, Accesorios y Otros Activos[cite: 2, 3]
+    elements.append(Paragraph("5. PERIFÉRICOS, ACCESORIOS Y OTROS ACTIVOS ASIGNADOS", section_style))
+    periph_data = [[Paragraph("<b>Tipo de Activo</b>", bold_style), Paragraph("<b>Marca</b>", bold_style), Paragraph("<b>Modelo</b>", bold_style), Paragraph("<b>N° Serie</b>", bold_style), Paragraph("<b>Estado</b>", bold_style), Paragraph("<b>Observaciones</b>", bold_style)]]
+    
+    if perifericos:
+        for p in perifericos:
+            periph_data.append([
+                Paragraph(p.get('tipo', ''), normal_style),
+                Paragraph(p.get('marca', ''), normal_style),
+                Paragraph(p.get('modelo', ''), normal_style),
+                Paragraph(p.get('serie', ''), normal_style),
+                Paragraph(p.get('estado', ''), normal_style),
+                Paragraph(p.get('observaciones', ''), normal_style)
+            ])
     else:
-        nuevo_dato = {
-            'ID_Empleado': request.form.get('id_empleado_reg'),
-            'Nombre': request.form.get('nombre_empleado_reg'),
-            'Area': request.form.get('area_empleado_reg'),
-            'Cargo': request.form.get('cargo_empleado_reg'),
-            'Correo': request.form.get('correo_empleado_reg', '')
-        }
-        file_path = EMPLEADOS_CSV
+        periph_data.append([Paragraph("Ninguno", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style)])
 
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path)
-        df = pd.concat([df, pd.DataFrame([nuevo_dato])], ignore_index=True)
+    t_periph = Table(periph_data, colWidths=[80, 75, 85, 75, 65, 170])
+    t_periph.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.grey),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 3)
+    ]))
+    elements.append(t_periph)
+    elements.append(Spacer(1, 6))
+
+    # 7. Observaciones[cite: 3]
+    elements.append(Paragraph("7. OBSERVACIONES Y SOPORTE", section_style))
+    obs_text = row['observaciones'] if row['observaciones'] else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
+    data_obs = [[Paragraph(obs_text, normal_style)]]
+    t_obs = Table(data_obs, colWidths=[550])
+    t_obs.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('PADDING', (0,0), (-1,-1), 5)]))
+    elements.append(t_obs)
+    elements.append(Spacer(1, 6))
+
+    # Registro Fotográfico (Cloudinary)[cite: 3]
+    elements.append(Paragraph("REGISTRO FOTOGRÁFICO (CLOUDINARY)", section_style))
+    foto_rows = []
+    if fotos:
+        for f in fotos:
+            foto_rows.append([Paragraph(f"• Ver Adjunto Cloudinary: <a href='{f}' color='blue'>{f}</a>", normal_style)])
     else:
-        df = pd.DataFrame([nuevo_dato])
+        foto_rows.append([Paragraph("• Ver Adjunto Ficha Cloudinary (Sin enlaces adicionales registrados)", normal_style)])
+    
+    t_fotos = Table(foto_rows, colWidths=[550])
+    t_fotos.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('PADDING', (0,0), (-1,-1), 4)]))
+    elements.append(t_fotos)
+    elements.append(Spacer(1, 12))
 
-    df.to_csv(file_path, index=False)
+    # Conformidad y Firmas[cite: 1, 3]
+    data_firmas = [
+        [Paragraph("________________________________________", normal_style), Paragraph("________________________________________", normal_style)],
+        [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br>Responsable Soporte TI", normal_style), 
+         Paragraph(f"<b>{row['firma']}</b><br>Trabajador / Responsable<br><b>Recí Conforme</b>", normal_style)]
+    ]
+    t_firmas = Table(data_firmas, colWidths=[275, 275])
+    t_firmas.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    elements.append(t_firmas)
+
+    doc.build(elements)
+    buffer.seek(0)
+    
+    response = make_response(buffer.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename=Ficha_INV_{row["id"]:03d}.pdf'
+    return response
+
+@app.route('/baja/<int:id>', methods=['POST'])
+def baja(id):
+    df = pd.read_csv(CSV_FILE)
+    motivo_baja = request.form.get('motivo_baja', 'Obsolescencia / Daño')
+    if id in df['id'].values:
+        df.loc[df['id'] == id, 'estado'] = f"BAJA - {motivo_baja}"
+        df.to_csv(CSV_FILE, index=False)
     return redirect(url_for('index'))
-
-@app.route('/delete/<id_unico>')
-def delete(id_unico):
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV)
-        df = df[df['ID_Unico'].astype(str) != str(id_unico)]
-        df.to_csv(DB_CSV, index=False)
-    return redirect(url_for('index'))
-
-@app.route('/imprimir/<id_unico>')
-def imprimir(id_unico):
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV).fillna('')
-        registro = df[df['ID_Unico'].astype(str) == str(id_unico)]
-        if not registro.empty:
-            item = registro.iloc[0].to_dict()
-            return render_template('acta.html', item=item)
-    return "Registro no encontrado", 404
-
-@app.route('/download_excel')
-def download_excel():
-    if os.path.exists(DB_CSV):
-        df = pd.read_csv(DB_CSV)
-        df.to_excel(EXCEL_OUTPUT, index=False)
-        return send_file(EXCEL_OUTPUT, as_attachment=True)
-    return "No hay datos para exportar", 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
