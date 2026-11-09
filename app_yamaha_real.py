@@ -10,7 +10,6 @@ from pypdf import PdfReader
 
 app = Flask(__name__)
 
-# Configuración de Cloudinary (lee las variables de entorno de Render)
 cloudinary.config(
     cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
     api_key = os.environ.get('CLOUDINARY_API_KEY'),
@@ -26,18 +25,21 @@ EXCEL_OUTPUT = 'Inventario_Corporativo_Yamaha_Final.xlsx'
 def inicializar_archivos():
     if not os.path.exists(DB_CSV):
         df_init = pd.DataFrame(columns=[
-            'ID_Unico', 'N_Ficha', 'Fecha', 'Sede', 'Responsable', 'Cargo', 
-            'Tipo_Equipo', 'Modelo', 'N_Serie', 'IP', 'Sistema_Operativo', 
-            'IMEI_o_Detalle', 'Procesador_RAM', 'Perifericos', 'Observaciones', 
-            'Firma_Tecnico', 'Firma_Empleado', 'Firma_Digital_Empleado', 'Foto_Equipo', 'Estado'
+            'ID_Unico', 'N_Ficha', 'Fecha', 'Sede', 'ID_Trabajador', 'Responsable', 'Area', 'Cargo', 'Correo',
+            'Tipo_Equipo', 'Marca_Modelo', 'N_Serie', 'Sistema_Operativo', 'Version_SO', 'Procesador',
+            'Memoria_RAM', 'Part_Number', 'Hostname', 'Direccion_IP', 'Direccion_MAC', 'Tipo_Conexion', 
+            'Punto_Red', 'Estado', 'Disco_Almacenamiento', 'Impresora_Instalada', 'Perifericos_Json',
+            'Celular_IMEI', 'Celular_MarcaModelo', 'Celular_RAM', 'Celular_Almacenamiento', 'Celular_Procesador',
+            'Celular_Telefono', 'Celular_SO', 'Celular_Accesorios', 'Celular_EstadoFisico', 'Observaciones',
+            'Firma_Tecnico', 'Firma_Digital_Tecnico', 'Firma_Empleado', 'Firma_Digital_Empleado', 'Foto_Equipo'
         ])
         df_init.to_csv(DB_CSV, index=False)
     
     if not os.path.exists(TECNICOS_CSV):
-        pd.DataFrame(columns=['Nombre', 'Cargo']).to_csv(TECNICOS_CSV, index=False)
+        pd.DataFrame(columns=['Nombre', 'Especialidad', 'Firma_Digital']).to_csv(TECNICOS_CSV, index=False)
         
     if not os.path.exists(EMPLEADOS_CSV):
-        pd.DataFrame(columns=['Nombre', 'Cargo']).to_csv(EMPLEADOS_CSV, index=False)
+        pd.DataFrame(columns=['ID_Empleado', 'Nombre', 'Area', 'Cargo', 'Correo']).to_csv(EMPLEADOS_CSV, index=False)
 
 inicializar_archivos()
 
@@ -52,7 +54,7 @@ def index():
         df = pd.read_csv(DB_CSV).fillna('')
         registros = df.to_dict(orient='records')
         total_equipos = len(df)
-        total_local = len(df[df['Sede'].astype(str).str.contains('Lima|Central', case=False, na=False)])
+        total_local = len(df[df['Sede'].astype(str).str.contains('Lima|Central|San Isidro', case=False, na=False)])
         total_provincia = total_equipos - total_local
 
     if os.path.exists(TECNICOS_CSV):
@@ -71,77 +73,62 @@ def index():
                            tecnicos=tecnicos,
                            empleados=empleados)
 
-@app.route('/upload', methods=['POST'])
-def upload_files():
-    files = request.files.getlist('files')
-    if not files or files[0].filename == '':
-        return redirect(url_for('index'))
-
-    os.makedirs('reportes_pdf', exist_ok=True)
-    
-    for file in files:
-        if file and file.filename.endswith('.pdf'):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join('reportes_pdf', filename)
-            file.save(filepath)
-            
-            try:
-                reader = PdfReader(filepath)
-                id_unico = str(uuid.uuid4())[:8]
-                n_ficha_gen = filename.replace('.pdf', '')
-                
-                nuevo_registro = {
-                    'ID_Unico': id_unico,
-                    'N_Ficha': n_ficha_gen,
-                    'Fecha': pd.Timestamp.today().strftime('%Y-%m-%d'),
-                    'Sede': 'Lima / Central',
-                    'Responsable': 'Por actualizar',
-                    'Cargo': 'Colaborador',
-                    'Tipo_Equipo': 'PC / Laptop',
-                    'Modelo': 'Genérico por PDF',
-                    'N_Serie': 'S/N',
-                    'IP': '0.0.0.0',
-                    'Sistema_Operativo': 'Windows 11 Pro',
-                    'IMEI_o_Detalle': 'N/A',
-                    'Procesador_RAM': 'Por definir',
-                    'Perifericos': 'Mouse, Teclado',
-                    'Observaciones': 'Ingresado vía PDF',
-                    'Firma_Tecnico': 'Soporte TI',
-                    'Firma_Empleado': 'Por actualizar',
-                    'Firma_Digital_Empleado': '',
-                    'Foto_Equipo': 'Sin foto',
-                    'Estado': 'Activo'
-                }
-                
-                df = pd.read_csv(DB_CSV)
-                df = pd.concat([df, pd.DataFrame([nuevo_registro])], ignore_index=True)
-                df.to_csv(DB_CSV, index=False)
-            except Exception as e:
-                print(f"Error procesando PDF {filename}: {e}")
-
-    return redirect(url_for('index'))
-
 @app.route('/add_manual', methods=['POST'])
 def add_manual():
     n_ficha = request.form.get('n_ficha')
     fecha = request.form.get('fecha')
     sede = request.form.get('sede')
-    responsable = request.form.get('responsable')
+    id_trabajador = request.form.get('id_trabajador', '')
+    responsable = request.form.get('responsable', '')
+    area = request.form.get('area', '')
     cargo = request.form.get('cargo', '')
-    tipo_equipo = request.form.get('tipo_equipo')
-    modelo = request.form.get('modelo')
-    n_serie = request.form.get('n_serie')
-    ip = request.form.get('ip', '')
+    correo = request.form.get('correo', '')
+    tipo_equipo = request.form.get('tipo_equipo', 'Laptop')
+    
+    # Datos de equipo principal / laptop
+    marca_modelo = request.form.get('marca_modelo', '')
+    n_serie = request.form.get('n_serie', '')
     sistema_operativo = request.form.get('sistema_operativo', '')
-    imei_o_detalle = request.form.get('imei_o_detalle', '')
-    procesador_ram = request.form.get('procesador_ram', '')
-    perifericos = request.form.get('perifericos', '')
+    version_so = request.form.get('version_so', '')
+    procesador = request.form.get('procesador', '')
+    memoria_ram = request.form.get('memoria_ram', '')
+    part_number = request.form.get('part_number', '')
+    hostname = request.form.get('hostname', '')
+    direccion_ip = request.form.get('direccion_ip', '')
+    direccion_mac = request.form.get('direccion_mac', '')
+    tipo_conexion = request.form.get('tipo_conexion', '')
+    punto_red = request.form.get('punto_red', '')
+    estado = request.form.get('estado', 'Operativo')
+    
+    # Almacenamiento e Impresoras
+    disco_almacenamiento = request.form.get('disco_almacenamiento', '')
+    impresora_instalada = request.form.get('impresora_instalada', '')
+    
+    # Celular
+    celular_imei = request.form.get('celular_imei', '')
+    celular_marcamodelo = request.form.get('celular_marcamodelo', '')
+    celular_ram = request.form.get('celular_ram', '')
+    celular_almacenamiento = request.form.get('celular_almacenamiento', '')
+    celular_procesador = request.form.get('celular_procesador', '')
+    celular_telefono = request.form.get('celular_telefono', '')
+    celular_so = request.form.get('celular_so', '')
+    celular_accesorios = request.form.get('celular_accesorios', '')
+    celular_estadofisico = request.form.get('celular_estadofisico', '')
+    
     observaciones = request.form.get('observaciones', '')
     firma_tecnico = request.form.get('firma_tecnico', '')
     firma_digital_empleado = request.form.get('firma_digital_empleado', '')
     id_unico = str(uuid.uuid4())[:8]
 
-    # Cloudinary: Organizar fotos en carpetas independientes por cada N_Ficha
+    # Buscar firma digital del técnico automáticamente desde su registro
+    firma_digital_tecnico = ""
+    if os.path.exists(TECNICOS_CSV):
+        df_tec = pd.read_csv(TECNICOS_CSV).fillna('')
+        match_tec = df_tec[df_tec['Nombre'] == firma_tecnico]
+        if not match_tec.empty:
+            firma_digital_tecnico = match_tec.iloc[0]['Firma_Digital']
+
+    # Subir fotos a Cloudinary organizadas por Ficha exacta
     fotos_urls = []
     archivos = request.files.getlist('fotos_equipo')
     folder_path = f"Yamaha_Inventario/Ficha_{n_ficha}"
@@ -161,22 +148,43 @@ def add_manual():
         'N_Ficha': n_ficha,
         'Fecha': fecha,
         'Sede': sede,
+        'ID_Trabajador': id_trabajador,
         'Responsable': responsable,
+        'Area': area,
         'Cargo': cargo,
+        'Correo': correo,
         'Tipo_Equipo': tipo_equipo,
-        'Modelo': modelo,
+        'Marca_Modelo': marca_modelo,
         'N_Serie': n_serie,
-        'IP': ip,
         'Sistema_Operativo': sistema_operativo,
-        'IMEI_o_Detalle': imei_o_detalle,
-        'Procesador_RAM': procesador_ram,
-        'Perifericos': perifericos,
+        'Version_SO': version_so,
+        'Procesador': procesador,
+        'Memoria_RAM': memoria_ram,
+        'Part_Number': part_number,
+        'Hostname': hostname,
+        'Direccion_IP': direccion_ip,
+        'Direccion_MAC': direccion_mac,
+        'Tipo_Conexion': tipo_conexion,
+        'Punto_Red': punto_red,
+        'Estado': estado,
+        'Disco_Almacenamiento': disco_almacenamiento,
+        'Impresora_Instalada': impresora_instalada,
+        'Perifericos_Json': '',
+        'Celular_IMEI': celular_imei,
+        'Celular_MarcaModelo': celular_marcamodelo,
+        'Celular_RAM': celular_ram,
+        'Celular_Almacenamiento': celular_almacenamiento,
+        'Celular_Procesador': celular_procesador,
+        'Celular_Telefono': celular_telefono,
+        'Celular_SO': celular_so,
+        'Celular_Accesorios': celular_accesorios,
+        'Celular_EstadoFisico': celular_estadofisico,
         'Observaciones': observaciones,
         'Firma_Tecnico': firma_tecnico,
+        'Firma_Digital_Tecnico': firma_digital_tecnico,
         'Firma_Empleado': responsable,
         'Firma_Digital_Empleado': firma_digital_empleado,
-        'Foto_Equipo': foto_equipo_str,
-        'Estado': 'Activo'
+        'Foto_Equipo': foto_equipo_str
     }
 
     if os.path.exists(DB_CSV):
@@ -191,11 +199,23 @@ def add_manual():
 @app.route('/add_personal', methods=['POST'])
 def add_personal():
     tipo = request.form.get('tipo_personal')
-    nombre = request.form.get('nombre_personal')
-    cargo = request.form.get('cargo_personal', '')
-
-    nuevo_dato = {'Nombre': nombre, 'Cargo': cargo}
-    file_path = TECNICOS_CSV if tipo == 'tecnico' else EMPLEADOS_CSV
+    
+    if tipo == 'tecnico':
+        nombre = request.form.get('nombre_tecnico')
+        especialidad = request.form.get('especialidad_tecnico', '')
+        firma_digital = request.form.get('firma_digital_tecnico_reg', '')
+        
+        nuevo_dato = {'Nombre': nombre, 'Especialidad': especialidad, 'Firma_Digital': firma_digital}
+        file_path = TECNICOS_CSV
+    else:
+        id_emp = request.form.get('id_empleado_reg')
+        nombre = request.form.get('nombre_empleado_reg')
+        area = request.form.get('area_empleado_reg')
+        cargo = request.form.get('cargo_empleado_reg')
+        correo = request.form.get('correo_empleado_reg', '')
+        
+        nuevo_dato = {'ID_Empleado': id_emp, 'Nombre': nombre, 'Area': area, 'Cargo': cargo, 'Correo': correo}
+        file_path = EMPLEADOS_CSV
 
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)

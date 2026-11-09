@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acta de Entrega - Ficha {{ item.N_Ficha }}</title>
+    <title>Acta Oficial - Ficha {{ item.N_Ficha }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f8f9fa; color: #333; }
-        .sheet-container { max-width: 800px; margin: 30px auto; background: #ffffff; padding: 40px; border: 1px solid #dee2e6; box-shadow: 0 0 15px rgba(0,0,0,0.05); }
+        body { background-color: #f8f9fa; color: #333; font-size: 14px; }
+        .sheet-container { max-width: 850px; margin: 30px auto; background: #ffffff; padding: 40px; border: 1px solid #dee2e6; box-shadow: 0 0 15px rgba(0,0,0,0.05); }
         @media print {
             body { background-color: #ffffff; }
             .no-print { display: none !important; }
-            .sheet-container { border: none; box-shadow: none; margin: 0; padding: 20px; max-width: 100%; }
+            .sheet-container { border: none; box-shadow: none; margin: 0; padding: 10px; max-width: 100%; }
         }
-        .header-title { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 25px; }
-        .table-custom th { background-color: #f1f3f5; width: 32%; }
-        .signature-box { border-top: 1px solid #333; margin-top: 40px; padding-top: 10px; text-align: center; }
-        .digital-sig { max-height: 80px; }
+        .header-title { border-bottom: 2px solid #0d6efd; padding-bottom: 10px; margin-bottom: 20px; }
+        .table-custom th { background-color: #f1f3f5; width: 25%; font-size: 13px; }
+        .signature-box { border-top: 1px solid #333; margin-top: 50px; padding-top: 10px; text-align: center; }
+        .digital-sig { max-height: 70px; }
     </style>
 </head>
 <body>
@@ -35,94 +35,149 @@
         </div>
 
         <div class="sheet-container">
+            <!-- ENCABEZADO OFICIAL YAMAHA -->
             <div class="row header-title align-items-center">
                 <div class="col-8">
-                    <h3 class="text-primary mb-1"><i class="fa-solid fa-file-shield me-2"></i> YAMAHA MOTOR</h3>
-                    <p class="text-muted mb-0 small">Soporte Tecnológico e Infraestructura Corporativa</p>
+                    <h4 class="text-primary mb-0"><strong>YAMAHA MOTOR</strong></h4>
+                    <p class="text-muted mb-0 small">FICHA DE INVENTARIO DE EQUIPOS TECNÓLOGICOS</p>
                 </div>
                 <div class="col-4 text-end">
-                    <h5 class="text-dark mb-0"><strong>Ficha: {{ item.N_Ficha }}</strong></h5>
+                    <p class="mb-0"><strong>N° de Ficha:</strong> <span class="text-danger">{{ item.N_Ficha }}</span></p>
                     <small class="text-muted">Fecha: {{ item.Fecha }}</small>
                 </div>
             </div>
 
-            <h4 class="text-center mb-4 text-secondary">ACTA DE ASIGNACIÓN Y ENTREGA MULTIDISPOSITIVO</h4>
-
-            <p class="mb-4">
-                Conste por el presente documento la entrega formal de los activos tecnológicos y periféricos asignados por el área de Soporte TI de Yamaha, sujetos a los términos de uso corporativo.
-            </p>
-
-            <h5 class="text-dark mb-3"><i class="fa-solid fa-laptop me-2 text-primary"></i> 1. Especificaciones Técnicas del Activo</h5>
-            <table class="table table-bordered table-custom mb-4">
+            <!-- 1. DATOS DEL TRABAJADOR -->
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>1. DATOS DEL TRABAJADOR / RESPONSABLE</strong></h6>
+            <table class="table table-bordered table-custom mb-3">
                 <tbody>
                     <tr>
-                        <th>Tipo de Dispositivo</th>
-                        <td>{{ item.Tipo_Equipo }}</td>
+                        <th>ID Trabajador</th>
+                        <td><code>{{ item.ID_Trabajador }}</code></td>
+                        <th>DNI / ID</th>
+                        <td>{{ item.ID_Trabajador }}</td>
                     </tr>
                     <tr>
-                        <th>Marca / Modelo</th>
-                        <td>{{ item.Modelo }}</td>
+                        <th>Nombre Completo</th>
+                        <td colspan="3"><strong>{{ item.Responsable }}</strong></td>
                     </tr>
                     <tr>
-                        <th>Número de Serie</th>
-                        <td><code>{{ item.N_Serie }}</code></td>
-                    </tr>
-                    <tr>
-                        <th>Sede / Ubicación</th>
-                        <td>{{ item.Sede }}</td>
-                    </tr>
-                    <tr>
-                        <th>Dirección IP</th>
-                        <td>{{ item.IP }}</td>
-                    </tr>
-                    <tr>
-                        <th>Sistema Operativo</th>
-                        <td>{{ item.Sistema_Operativo }}</td>
-                    </tr>
-                    <tr>
-                        <th>IMEI / Detalle Específico</th>
-                        <td>{{ item.IMEI_o_Detalle }}</td>
-                    </tr>
-                    <tr>
-                        <th>CPU / RAM / BUS</th>
-                        <td>{{ item.Procesador_RAM }}</td>
-                    </tr>
-                    <tr>
-                        <th>Periféricos Asignados</th>
-                        <td>{{ item.Perifericos }}</td>
-                    </tr>
-                    <tr>
-                        <th>Observaciones</th>
-                        <td>{{ item.Observaciones }}</td>
-                    </tr>
-                    <tr>
-                        <th>Estado Actual</th>
-                        <td><span class="badge bg-success">{{ item.Estado }}</span></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h5 class="text-dark mb-3"><i class="fa-solid fa-user-tie me-2 text-primary"></i> 2. Datos del Colaborador Responsable</h5>
-            <table class="table table-bordered table-custom mb-4">
-                <tbody>
-                    <tr>
-                        <th>Apellidos y Nombres (DNI)</th>
-                        <td>{{ item.Responsable }}</td>
-                    </tr>
-                    <tr>
+                        <th>Área / Dpto.</th>
+                        <td>{{ item.Area }}</td>
                         <th>Cargo</th>
                         <td>{{ item.Cargo }}</td>
                     </tr>
+                    <tr>
+                        <th>Correo Corporativo</th>
+                        <td colspan="3">{{ item.Correo }}</td>
+                    </tr>
                 </tbody>
             </table>
 
-            <h5 class="text-dark mb-3"><i class="fa-solid fa-images me-2 text-primary"></i> 3. Registro Fotográfico Organizado en Cloudinary</h5>
+            <!-- 2. DETALLE DE EQUIPO PRINCIPAL ( SEGÚN SEA LAPTOP O CELULAR ) -->
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>2. DETALLE DE EQUIPO PRINCIPAL ({{ item.Tipo_Equipo }})</strong></h6>
+            
+            {% if item.Tipo_Equipo == 'Celular' %}
+            <table class="table table-bordered table-custom mb-3">
+                <tbody>
+                    <tr>
+                        <th>Tipo de Equipo</th>
+                        <td>Celular</td>
+                        <th>Marca / Modelo</th>
+                        <td>{{ item.Celular_MarcaModelo }}</td>
+                    </tr>
+                    <tr>
+                        <th>IMEI</th>
+                        <td><code>{{ item.Celular_IMEI }}</code></td>
+                        <th>N° Teléfono</th>
+                        <td>{{ item.Celular_Telefono }}</td>
+                    </tr>
+                    <tr>
+                        <th>RAM / Almacenamiento</th>
+                        <td>{{ item.Celular_RAM }} / {{ item.Celular_Almacenamiento }}</td>
+                        <th>Procesador</th>
+                        <td>{{ item.Celular_Procesador }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sistema Operativo</th>
+                        <td>{{ item.Celular_SO }}</td>
+                        <th>Estado Físico</th>
+                        <td>{{ item.Celular_EstadoFisico }}</td>
+                    </tr>
+                    <tr>
+                        <th>Accesorios Entregados</th>
+                        <td colspan="3">{{ item.Celular_Accesorios }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% else %}
+            <table class="table table-bordered table-custom mb-3">
+                <tbody>
+                    <tr>
+                        <th>Tipo de Equipo</th>
+                        <td>{{ item.Tipo_Equipo }}</td>
+                        <th>Sistema Operativo</th>
+                        <td>{{ item.Sistema_Operativo }} (Ver. {{ item.Version_SO }})</td>
+                    </tr>
+                    <tr>
+                        <th>Marca / Modelo</th>
+                        <td>{{ item.Marca_Modelo }}</td>
+                        <th>N° Serie</th>
+                        <td><code>{{ item.N_Serie }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Procesador</th>
+                        <td>{{ item.Procesador }}</td>
+                        <th>Memoria RAM</th>
+                        <td>{{ item.Memoria_RAM }}</td>
+                    </tr>
+                    <tr>
+                        <th>N° Part Number</th>
+                        <td>{{ item.Part_Number }}</td>
+                        <th>Hostname</th>
+                        <td>{{ item.Hostname }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dirección IP</th>
+                        <td>{{ item.Direccion_IP }}</td>
+                        <th>Dirección MAC</th>
+                        <td>{{ item.Direccion_MAC }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tipo Conexión</th>
+                        <td>{{ item.Tipo_Conexion }}</td>
+                        <th>Punto de Red</th>
+                        <td>{{ item.Punto_Red }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            <!-- 3. ALMACENAMIENTO E IMPRESORAS -->
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>3. ALMACENAMIENTO E IMPRESORAS INSTALADAS</strong></h6>
+            <table class="table table-bordered table-custom mb-3">
+                <tbody>
+                    <tr>
+                        <th>Disco Almacenamiento</th>
+                        <td>{{ item.Disco_Almacenamiento }}</td>
+                        <th>Impresora Instalada</th>
+                        <td>{{ item.Impresora_Instalada }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 7. OBSERVACIONES -->
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>7. OBSERVACIONES</strong></h6>
+            <p class="border p-2 bg-light rounded small mb-3">{{ item.Observaciones if item.Observaciones else 'Sin observaciones adicionales registradas.' }}</p>
+
+            <!-- REGISTRO FOTOGRÁFICO CLOUDINARY -->
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>REGISTRO FOTOGRÁFICO (CLOUDINARY)</strong></h6>
             <div class="mb-4">
                 {% if item.Foto_Equipo and item.Foto_Equipo != 'Sin foto' and item.Foto_Equipo != 'nan' %}
                     <div class="d-flex flex-wrap gap-2">
                         {% for foto_url in item.Foto_Equipo.split(',') %}
                             <a href="{{ foto_url.strip() }}" target="_blank" class="btn btn-outline-dark btn-sm">
-                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Foto Ficha {{ item.N_Ficha }}
+                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Adjunto Ficha {{ item.N_Ficha }}
                             </a>
                         {% endfor %}
                     </div>
@@ -131,20 +186,28 @@
                 {% endif %}
             </div>
 
-            <div class="row mt-5 pt-4">
-                <div class="col-6 text-center px-4">
+            <!-- DECLARACIÓN Y FIRMAS OFICIALES -->
+            <div class="small text-muted mb-4">
+                <em>El colaborador declara haber tomado conocimiento y conformidad del inventario de equipos y accesorios registrados en la presente ficha, cuya verificación fue realizada por el área de TI. Asimismo, se compromete a mantener la custodia y el uso adecuado de los activos asignados, conforme a las políticas de la empresa.</em>
+            </div>
+
+            <div class="row mt-4 pt-3">
+                <div class="col-6 text-center px-3">
                     <div class="signature-box">
+                        {% if item.Firma_Digital_Tecnico %}
+                            <img src="{{ item.Firma_Digital_Tecnico }}" class="digital-sig mb-1" alt="Firma Técnico">
+                        {% endif %}
                         <p class="mb-0 fw-bold">{{ item.Firma_Tecnico }}</p>
-                        <small class="text-muted">Soporte Técnico TI / Yamaha</small>
+                        <small class="text-muted">Vassosp Trading EIRL<br>Responsable Soporte TI</small>
                     </div>
                 </div>
-                <div class="col-6 text-center px-4">
+                <div class="col-6 text-center px-3">
                     <div class="signature-box">
                         {% if item.Firma_Digital_Empleado %}
-                            <img src="{{ item.Firma_Digital_Empleado }}" class="digital-sig mb-1" alt="Firma Digital">
+                            <img src="{{ item.Firma_Digital_Empleado }}" class="digital-sig mb-1" alt="Firma Trabajador">
                         {% endif %}
-                        <p class="mb-0 fw-bold">{{ item.Firma_Empleado }}</p>
-                        <small class="text-muted">Colaborador / Recibí Conforme</small>
+                        <p class="mb-0 fw-bold">{{ item.Responsable }}</p>
+                        <small class="text-muted">Trabajador / Responsable<br>Recíbi Conforme</small>
                     </div>
                 </div>
             </div>

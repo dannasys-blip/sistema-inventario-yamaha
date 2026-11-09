@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario Corporativo - Yamaha</title>
+    <title>Sistema de Inventario - Yamaha (Formato Oficial)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .signature-pad { border: 2px dashed #ced4da; background-color: #fff; width: 100%; height: 140px; cursor: crosshair; }
+        .signature-pad { border: 2px dashed #ced4da; background-color: #fff; width: 100%; height: 130px; cursor: crosshair; }
     </style>
 </head>
 <body class="bg-light">
 
-    <!-- Navbar Superior -->
     <nav class="navbar navbar-dark bg-dark shadow-sm">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-boxes-stacked me-2"></i> Inventario Yamaha - Gestión Multidispositivo</span>
+            <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-file-shield me-2"></i> Inventario Yamaha - Formato Oficial de Equipos Tecnológicos</span>
             <div>
                 <a href="/download_excel" class="btn btn-success btn-sm"><i class="fa-solid fa-file-excel me-1"></i> Descargar Excel General</a>
             </div>
@@ -24,12 +23,11 @@
 
     <div class="container-fluid py-4">
 
-        <!-- Tarjetas de Resumen -->
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card text-white bg-primary shadow-sm">
                     <div class="card-body">
-                        <h5 class="card-title">Total Equipos Vigentes</h5>
+                        <h5 class="card-title">Total Equipos Registrados</h5>
                         <h3>{{ total_equipos }}</h3>
                     </div>
                 </div>
@@ -37,7 +35,7 @@
             <div class="col-md-4">
                 <div class="card text-white bg-info shadow-sm">
                     <div class="card-body">
-                        <h5 class="card-title">Sede Local (Lima / Central)</h5>
+                        <h5 class="card-title">Sede Local (Lima / San Isidro)</h5>
                         <h3>{{ total_local }}</h3>
                     </div>
                 </div>
@@ -52,41 +50,37 @@
             </div>
         </div>
 
-        <!-- Panel de Control y Accesos Rápidos -->
         <div class="row mb-4">
             <div class="col-md-12 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
-                <h5 class="mb-0 text-secondary"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Panel de Control y Gestión</h5>
+                <h5 class="mb-0 text-secondary"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Panel de Control Operativo</h5>
                 <div>
                     <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#modalNuevoRegistro">
-                        <i class="fa-solid fa-plus-circle me-1"></i> Nueva Ficha Específica
+                        <i class="fa-solid fa-plus-circle me-1"></i> Nueva Ficha de Inventario
                     </button>
                     <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalPersonal">
-                        <i class="fa-solid fa-users-gear me-1"></i> Gestionar Personal
+                        <i class="fa-solid fa-users-gear me-1"></i> Gestionar Personal & Firmas
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla General de Registros -->
         <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span><i class="fa-solid fa-table me-2"></i> Listado Completo de Inventario</span>
+            <div class="card-header bg-dark text-white">
+                <span><i class="fa-solid fa-table me-2"></i> Listado General de Activos Informáticos</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-striped table-hover align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th>Ficha / Sede</th>
+                                <th>N° Ficha / Fecha</th>
                                 <th>Tipo</th>
-                                <th>Modelo / N° Serie</th>
-                                <th>IP / SO</th>
-                                <th>IMEI / Detalle</th>
-                                <th>CPU / RAM / BUS</th>
-                                <th>Periféricos</th>
-                                <th>Responsable</th>
-                                <th>Observaciones</th>
-                                <th>Cloudinary (Ficha)</th>
+                                <th>Trabajador / ID</th>
+                                <th>Sede</th>
+                                <th>Equipo / Modelo</th>
+                                <th>N° Serie</th>
+                                <th>IP / Hostname</th>
+                                <th>Cloudinary</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -94,15 +88,13 @@
                             {% if registros %}
                                 {% for row in registros %}
                                 <tr>
-                                    <td><strong>{{ row.N_Ficha }}</strong><br><small class="text-muted">{{ row.Sede }}</small></td>
+                                    <td><strong>{{ row.N_Ficha }}</strong><br><small class="text-muted">{{ row.Fecha }}</small></td>
                                     <td><span class="badge bg-secondary">{{ row.Tipo_Equipo }}</span></td>
-                                    <td>{{ row.Modelo }}<br><small class="text-muted"><code>{{ row.N_Serie }}</code></small></td>
-                                    <td>{{ row.IP }}<br><small class="text-primary">{{ row.Sistema_Operativo }}</small></td>
-                                    <td>{{ row.IMEI_o_Detalle }}</td>
-                                    <td>{{ row.Procesador_RAM }}</td>
-                                    <td><small>{{ row.Perifericos }}</small></td>
-                                    <td>{{ row.Responsable }}<br><small class="text-muted">{{ row.Cargo }}</small></td>
-                                    <td><small class="text-secondary">{{ row.Observaciones }}</small></td>
+                                    <td>{{ row.Responsable }}<br><small class="text-muted">ID: {{ row.ID_Trabajador }}</small></td>
+                                    <td>{{ row.Sede }}</td>
+                                    <td>{{ row.Marca_Modelo }}</td>
+                                    <td><code>{{ row.N_Serie }}</code></td>
+                                    <td>{{ row.Direccion_IP }}<br><small class="text-primary">{{ row.Hostname }}</small></td>
                                     <td>
                                         {% if row.Foto_Equipo and row.Foto_Equipo != 'Sin foto' and row.Foto_Equipo != 'nan' %}
                                             <div class="d-flex flex-wrap gap-1">
@@ -121,7 +113,7 @@
                                             <a href="/imprimir/{{ row.ID_Unico }}" class="btn btn-info btn-sm text-white" title="Imprimir Acta" target="_blank">
                                                 <i class="fa-solid fa-print"></i>
                                             </a>
-                                            <a href="/delete/{{ row.ID_Unico }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Dar de baja este equipo?');" title="Dar de baja">
+                                            <a href="/delete/{{ row.ID_Unico }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este registro?');" title="Eliminar">
                                                 <i class="fa-solid fa-trash"></i>
                                             </a>
                                         </div>
@@ -130,7 +122,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="11" class="text-center text-muted py-4">No hay registros de inventario disponibles.</td>
+                                    <td colspan="9" class="text-center text-muted py-4">No hay registros en el inventario.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -141,239 +133,394 @@
 
     </div>
 
-    <!-- DATALISTS PARA BÚSQUEDA RÁPIDA DE 150+ EMPLEADOS Y ASISTENTE HARDWARE -->
+    <!-- DATALISTS PARA BÚSQUEDA RÁPIDA DE EMPLEADOS Y TÉCNICOS -->
     <datalist id="listEmpleados">
         {% for emp in empleados %}
-        <option value="{{ emp.Nombre }}">Cargo: {{ emp.Cargo }}</option>
+        <option value="{{ emp.Nombre }}" data-id="{{ emp.ID_Empleado }}" data-area="{{ emp.Area }}" data-cargo="{{ emp.Cargo }}" data-correo="{{ emp.Correo }}">ID: {{ emp.ID_Empleado }} | Área: {{ emp.Area }}</option>
         {% endfor %}
     </datalist>
 
     <datalist id="listTecnicos">
         {% for tec in tecnicos %}
-        <option value="{{ tec.Nombre }}">Especialidad: {{ tec.Cargo }}</option>
+        <option value="{{ tec.Nombre }}">Esp: {{ tec.Especialidad }}</option>
         {% endfor %}
     </datalist>
 
-    <datalist id="listProcesadores">
-        <option value="Intel Core i7 13700H (14 Cores)">
-        <option value="Intel Core i5 12400 (6 Cores)">
-        <option value="Intel Core i3 1115G4">
-        <option value="AMD Ryzen 7 5700U (8 Cores)">
-        <option value="AMD Ryzen 5 5600G">
-        <option value="Apple M2 Chip">
-    </datalist>
-
-    <datalist id="listRAM">
-        <option value="8GB DDR4 2666MHz">
-        <option value="8GB DDR4 3200MHz Bus">
-        <option value="16GB DDR4 3200MHz Bus">
-        <option value="16GB DDR5 4800MHz Bus">
-        <option value="32GB DDR5 5600MHz Bus">
-        <option value="4GB DDR3 1600MHz">
-    </datalist>
-
-    <datalist id="listSO">
-        <option value="Windows 11 Pro 64-bit">
-        <option value="Windows 10 Pro 64-bit">
-        <option value="macOS Sonoma">
-        <option value="Android 14 (Móvil)">
-        <option value="iOS 17 (iPhone)">
-        <option value="Firmware Propietario (Switch)">
-    </datalist>
-
-    <datalist id="listPerifericos">
-        <option value="Mouse Óptico USB + Teclado Español + Pad">
-        <option value="Mouse Inalámbrico + Teclado + Funda Laptop">
-        <option value="Solo Cargador Tipo C Original + Cable USB">
-        <option value="Cargador + Audífonos Bluetooth + Funda">
-        <option value="Control Remoto TV + Cable HDMI 4K + Soporte Pared">
-        <option value="Cable Consola RJ45 + Soportes de Rack">
-    </datalist>
-
-    <!-- MODAL: NUEVA FICHA MANUAL ESPECÍFICA -->
+    <!-- MODAL: NUEVA FICHA DE INVENTARIO OFICIAL -->
     <div class="modal fade" id="modalNuevoRegistro" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <form action="/add_manual" method="POST" enctype="multipart/form-data" onsubmit="prepareSignature()">
                     <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title"><i class="fa-solid fa-file-circle-plus me-2"></i> Registrar Equipo con Asistente Rápido y Filtro</h5>
+                        <h5 class="modal-title"><i class="fa-solid fa-file-circle-plus me-2"></i> Ficha de Inventario Oficial - Yamaha</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">N° Ficha</label>
-                            <input type="text" class="form-control" name="n_ficha" required placeholder="Ej. YAMAHA-001">
+                        
+                        <!-- ENCABEZADO -->
+                        <div class="col-md-4">
+                            <label class="form-label">N° de Ficha</label>
+                            <input type="text" class="form-control" name="n_ficha" required placeholder="Ej. INV-2026-001">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Fecha</label>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha de Levantamiento</label>
                             <input type="date" class="form-control" name="fecha" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Sede / Ubicación</label>
-                            <input type="text" class="form-control" name="sede" required placeholder="Lima / Iquitos / Provincia">
+                            <input type="text" class="form-control" name="sede" required value="Sede Central - San Isidro">
                         </div>
+
+                        <!-- 1. DATOS DEL TRABAJADOR / RESPONSABLE (CON FILTRADO PARA 150+ TRABAJADORES) -->
+                        <div class="col-12"><hr><h6 class="text-primary fw-bold">1. DATOS DEL TRABAJADOR / RESPONSABLE</h6></div>
+                        
                         <div class="col-md-3">
-                            <label class="form-label">Tipo de Dispositivo</label>
-                            <select class="form-select" name="tipo_equipo" required>
-                                <option value="PC / Desktop">PC / Desktop</option>
+                            <label class="form-label">ID Trabajador</label>
+                            <input type="text" class="form-control" id="id_trabajador" name="id_trabajador" placeholder="EMP-001">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nombre Completo (Escribe para filtrar)</label>
+                            <input class="form-control" list="listEmpleados" id="input_responsable" name="responsable" required placeholder="Buscar nombre o ID..." oninput="autoCompletarEmpleado(this)">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Correo Corporativo</label>
+                            <input type="email" class="form-control" id="correo_empleado" name="correo" placeholder="correo@empresa.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Área / Dpto.</label>
+                            <input type="text" class="form-control" id="area_empleado" name="area" placeholder="Tecnología y Sistemas">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cargo</label>
+                            <input type="text" class="form-control" id="cargo_empleado" name="cargo" placeholder="Líder de Infraestructura TI">
+                        </div>
+
+                        <!-- SELECCIÓN DE TIPO DE EQUIPO (CAMBIA DINÁMICAMENTE EL PERFIL) -->
+                        <div class="col-12"><hr><h6 class="text-primary fw-bold">2. DETALLE DE EQUIPO PRINCIPAL</h6></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Equipo</label>
+                            <select class="form-select" id="tipo_equipo" name="tipo_equipo" required onchange="cambiarPerfilEquipo()">
                                 <option value="Laptop">Laptop</option>
-                                <option value="Impresora">Impresora (Láser/Tinta)</option>
-                                <option value="Celular / Móvil">Celular / Móvil</option>
-                                <option value="Switch / Red">Switch / Red</option>
-                                <option value="Televisor / Pantalla">Televisor / Pantalla</option>
+                                <option value="PC / Desktop">PC / Desktop</option>
+                                <option value="Celular">Celular / Móvil</option>
                             </select>
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label">Marca / Modelo</label>
-                            <input type="text" class="form-control" name="modelo" required placeholder="Ej. HP ProBook, Epson L3210, Cisco...">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Número de Serie</label>
-                            <input type="text" class="form-control" name="n_serie" required placeholder="N° de serie de fábrica">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Dirección IP</label>
-                            <input type="text" class="form-control" name="ip" placeholder="192.168.1.X">
+                        <!-- SECCIÓN LAPTOP / PC / DESKTOP -->
+                        <div id="seccion_computo" class="row g-3 col-12 m-0 p-0">
+                            <div class="col-md-4">
+                                <label class="form-label">Marca / Modelo</label>
+                                <input type="text" class="form-control" name="marca_modelo" placeholder="Ej. Lenovo T14 Gen 3">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">N° de Serie</label>
+                                <input type="text" class="form-control" name="n_serie" placeholder="PF-34X891">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sistema Operativo</label>
+                                <input type="text" class="form-control" name="sistema_operativo" value="Microsoft Windows 11">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Versión SO</label>
+                                <input type="text" class="form-control" name="version_so" value="25H2">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Procesador</label>
+                                <input type="text" class="form-control" name="procesador" placeholder="Intel Core i7-1265U">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Memoria RAM</label>
+                                <input type="text" class="form-control" name="memoria_ram" placeholder="16 GB DDR4 2666 MHz">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">N° Part Number</label>
+                                <input type="text" class="form-control" name="part_number" placeholder="KVR32N22S8/8">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Hostname</label>
+                                <input type="text" class="form-control" name="hostname" placeholder="PC-TI-MENDOZA">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Dirección IP</label>
+                                <input type="text" class="form-control" name="direccion_ip" placeholder="192.168.10.45">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Dirección MAC</label>
+                                <input type="text" class="form-control" name="direccion_mac" placeholder="3A:8B:50:26:11:90">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo Conexión</label>
+                                <input type="text" class="form-control" name="tipo_conexion" value="Ethernet/Wi-Fi">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Punto de Red</label>
+                                <input type="text" class="form-control" name="punto_red" placeholder="SW-PISO2-P04">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Estado</label>
+                                <input type="text" class="form-control" name="estado" value="Operativo">
+                            </div>
                         </div>
 
-                        <!-- AUTOCOMPLETADO TÉCNICO RÁPIDO -->
-                        <div class="col-md-4">
-                            <label class="form-label text-primary"><strong>Sistema Operativo</strong></label>
-                            <input class="form-control" list="listSO" name="sistema_operativo" placeholder="Seleccionar o escribir SO...">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-primary"><strong>IMEI o Detalle Específico</strong></label>
-                            <input type="text" class="form-control" name="imei_o_detalle" placeholder="Celulares: IMEI / Switches: # Puertos">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-primary"><strong>Procesador, RAM & DDR / Bus</strong></label>
-                            <input class="form-control" list="listRAM" name="procesador_ram" placeholder="Ej. Core i7 + 16GB DDR4 3200MHz">
+                        <!-- SECCIÓN CELULAR -->
+                        <div id="seccion_celular" class="row g-3 col-12 m-0 p-0" style="display: none;">
+                            <div class="col-md-4">
+                                <label class="form-label">Celular Marca / Modelo</label>
+                                <input type="text" class="form-control" name="celular_marcamodelo" placeholder="Ej. Samsung Galaxy S23">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">IMEI del Celular</label>
+                                <input type="text" class="form-control" name="celular_imei" placeholder="358921048192031">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">N° Teléfono / Línea</label>
+                                <input type="text" class="form-control" name="celular_telefono" placeholder="+51 987654321">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Memoria RAM Celular</label>
+                                <input type="text" class="form-control" name="celular_ram" placeholder="8 GB">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Almacenamiento Celular</label>
+                                <input type="text" class="form-control" name="celular_almacenamiento" placeholder="256 GB">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Procesador Celular</label>
+                                <input type="text" class="form-control" name="celular_procesador" placeholder="Snapdragon 8 Gen 2">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">SO y Versión</label>
+                                <input type="text" class="form-control" name="celular_so" placeholder="Android 14">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Accesorios Entregados</label>
+                                <input type="text" class="form-control" name="celular_accesorios" placeholder="Cargador, Cable USB-C, Funda">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado Físico del Equipo</label>
+                                <input type="text" class="form-control" name="celular_estadofisico" placeholder="Excelente / Sin rayones">
+                            </div>
                         </div>
 
+                        <!-- 3. ALMACENAMIENTO & 4. IMPRESORAS -->
+                        <div class="col-12"><hr><h6 class="text-primary fw-bold">3. ALMACENAMIENTO E IMPRESORAS</h6></div>
                         <div class="col-md-6">
-                            <label class="form-label text-primary"><strong>Periféricos Asignados (Mouse, Teclado, Funda...)</strong></label>
-                            <input class="form-control" list="listPerifericos" name="perifericos" placeholder="Seleccionar kit de periféricos...">
+                            <label class="form-label">Disco Almacenamiento (Marca/Capacidad)</label>
+                            <input type="text" class="form-control" name="disco_almacenamiento" value="WD - 512 GB SSD NVMe">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label"><strong>Campo de Observaciones</strong></label>
-                            <input type="text" class="form-control" name="observaciones" placeholder="Detalles del estado físico, cargador o notas adicionales">
+                            <label class="form-label">Impresora Instalada (Name / IP)</label>
+                            <input type="text" class="form-control" name="impresora_instalada" value="Epson L3250 Series - IP: 192.168.0.105">
                         </div>
 
-                        <!-- FILTROS DE PERSONAL -->
-                        <div class="col-md-4">
-                            <label class="form-label">Responsable (Escribe DNI o Nombre)</label>
-                            <input class="form-control" list="listEmpleados" name="responsable" required placeholder="Buscar colaborador...">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Cargo del Empleado</label>
-                            <input type="text" class="form-control" name="cargo" placeholder="Cargo corporativo">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Técnico Responsable</label>
-                            <input class="form-control" list="listTecnicos" name="firma_tecnico" placeholder="Técnico a cargo...">
-                        </div>
-
+                        <!-- 7. OBSERVACIONES -->
+                        <div class="col-12"><hr><h6 class="text-primary fw-bold">7. OBSERVACIONES</h6></div>
                         <div class="col-12">
-                            <label class="form-label text-primary"><strong>Fotos o Actas (Se organizan en Cloudinary por Ficha)</strong></label>
+                            <textarea class="form-control" name="observaciones" rows="2" placeholder="Observaciones técnicas adicionales del levantamiento..."></textarea>
+                        </div>
+
+                        <!-- TÉCNICO RESPONSABLE (JALA SU FIRMA DEL MÓDULO) -->
+                        <div class="col-12"><hr><h6 class="text-success fw-bold">ASIGNACIÓN DE SOPORTE TI</h6></div>
+                        <div class="col-md-12">
+                            <label class="form-label">Técnico Encargado (Seleccionar para autocompletar su firma registrada)</label>
+                            <input class="form-control" list="listTecnicos" name="firma_tecnico" required placeholder="Escribe el nombre del técnico registrado...">
+                        </div>
+
+                        <!-- FOTOS (CLOUDINARY) -->
+                        <div class="col-12">
+                            <label class="form-label text-primary"><strong>Fotos o Evidencias (Se organizan en Cloudinary por Ficha)</strong></label>
                             <input type="file" class="form-control" name="fotos_equipo" multiple accept="image/*">
                         </div>
 
-                        <!-- FIRMA DIGITAL -->
+                        <!-- FIRMA DIGITAL DEL TRABAJADOR -->
                         <div class="col-12">
-                            <label class="form-label"><strong>Firma Digital del Colaborador</strong></label>
+                            <label class="form-label"><strong>FIRMA DEL TRABAJADOR / RESPONSABLE (Recíbi Conforme)</strong></label>
                             <canvas id="signatureCanvas" class="signature-pad rounded"></canvas>
                             <input type="hidden" name="firma_digital_empleado" id="firma_digital_empleado">
                             <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="clearSignature()">Limpiar Firma</button>
                         </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Guardar Ficha Completa</button>
+                        <button type="submit" class="btn btn-success">Guardar Ficha Oficial</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: GESTIÓN DE PERSONAL -->
+    <!-- MODAL: GESTIÓN DE PERSONAL Y FIRMA DE TÉCNICOS -->
     <div class="modal fade" id="modalPersonal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form action="/add_personal" method="POST">
-                    <div class="modal-header bg-secondary text-white">
-                        <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2"></i> Registrar Técnico o Empleado</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Tipo de Personal</label>
-                            <select class="form-select" name="tipo_personal" required>
-                                <option value="tecnico">Técnico (Soporte)</option>
-                                <option value="empleado">Empleado / Colaborador</option>
-                            </select>
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title"><i class="fa-solid fa-users-gear me-2"></i> Gestión de Empleados y Técnicos</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" id="personalTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="emp-tab" data-bs-toggle="tab" data-bs-target="#empContent" type="button" role="tab">Registrar Empleado</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tec-tab" data-bs-toggle="tab" data-bs-target="#tecContent" type="button" role="tab">Registrar Técnico (con Firma)</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="personalTabContent">
+                        
+                        <!-- Formulario Empleado -->
+                        <div class="tab-pane fade show active" id="empContent" role="tabpanel">
+                            <form action="/add_personal" method="POST">
+                                <input type="hidden" name="tipo_personal" value="empleado">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">ID de Empleado</label>
+                                        <input type="text" class="form-control" name="id_empleado_reg" required placeholder="EMP-001">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellidos y Nombres Completos</label>
+                                        <input type="text" class="form-control" name="nombre_empleado_reg" required placeholder="Carlos Mendoza Silva">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Área / Dpto.</label>
+                                        <input type="text" class="form-control" name="area_empleado_reg" required placeholder="Tecnología y Sistemas">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cargo</label>
+                                        <input type="text" class="form-control" name="cargo_empleado_reg" required placeholder="Líder de Infraestructura TI">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Correo Corporativo</label>
+                                        <input type="email" class="form-control" name="correo_empleado_reg" placeholder="carlos.mendoza@empresa.com">
+                                    </div>
+                                    <div class="col-12 text-end mt-3">
+                                        <button type="submit" class="btn btn-primary">Guardar Empleado en Base de Datos</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Apellidos y Nombres (o DNI + Nombre)</label>
-                            <input type="text" class="form-control" name="nombre_personal" required placeholder="Ej. [72819033] Carlos Ruiz">
+
+                        <!-- Formulario Técnico -->
+                        <div class="tab-pane fade" id="tecContent" role="tabpanel">
+                            <form action="/add_personal" method="POST" onsubmit="prepareTecnicoSignature()">
+                                <input type="hidden" name="tipo_personal" value="tecnico">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombre y Apellidos del Técnico</label>
+                                        <input type="text" class="form-control" name="nombre_tecnico" required placeholder="Responsable Soporte TI">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Especialidad / Empresa</label>
+                                        <input type="text" class="form-control" name="especialidad_tecnico" placeholder="Vassosp Trading EIRL">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label text-success"><strong>Firma Digital del Técnico (Se usará automáticamente al asignarlo)</strong></label>
+                                        <canvas id="signatureCanvasTec" class="signature-pad rounded"></canvas>
+                                        <input type="hidden" name="firma_digital_tecnico_reg" id="firma_digital_tecnico_reg">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="clearTecnicoSignature()">Limpiar Firma Técnico</button>
+                                    </div>
+                                    <div class="col-12 text-end mt-3">
+                                        <button type="submit" class="btn btn-success">Guardar Técnico y su Firma</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Cargo / Especialidad</label>
-                            <input type="text" class="form-control" name="cargo_personal" placeholder="Ej. Analista TI o Asistente">
-                        </div>
+
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="submit" class="btn btn-primary">Registrar Personal</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script>
+        function cambiarPerfilEquipo() {
+            const tipo = document.getElementById('tipo_equipo').value;
+            const secComputo = document.getElementById('seccion_computo');
+            const secCelular = document.getElementById('seccion_celular');
+
+            if (tipo === 'Celular') {
+                secComputo.style.display = 'none';
+                secCelular.style.display = 'flex';
+            } else {
+                secComputo.style.display = 'flex';
+                secCelular.style.display = 'none';
+            }
+        }
+
+        function autoCompletarEmpleado(input) {
+            const val = input.value;
+            const options = document.getElementById('listEmpleados').options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === val) {
+                    document.getElementById('id_trabajador').value = options[i].getAttribute('data-id') || '';
+                    document.getElementById('area_empleado').value = options[i].getAttribute('data-area') || '';
+                    document.getElementById('cargo_empleado').value = options[i].getAttribute('data-cargo') || '';
+                    document.getElementById('correo_empleado').value = options[i].getAttribute('data-correo') || '';
+                    break;
+                }
+            }
+        }
+
+        // Firma Usuario
         const canvas = document.getElementById('signatureCanvas');
         if (canvas) {
             const ctx = canvas.getContext('2d');
             let painting = false;
-
             function startPosition(e) { painting = true; draw(e); }
             function finishedPosition() { painting = false; ctx.beginPath(); }
             function draw(e) {
                 if (!painting) return;
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#000';
-
+                ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
                 const rect = canvas.getBoundingClientRect();
                 const x = (e.clientX || e.touches[0].clientX) - rect.left;
                 const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(x, y);
+                ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
             }
-
             canvas.addEventListener('mousedown', startPosition);
             canvas.addEventListener('mouseup', finishedPosition);
             canvas.addEventListener('mousemove', draw);
-
             canvas.addEventListener('touchstart', startPosition);
             canvas.addEventListener('touchend', finishedPosition);
             canvas.addEventListener('touchmove', draw);
         }
-
         function clearSignature() {
             const canvas = document.getElementById('signatureCanvas');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        }
+        function prepareSignature() {
+            document.getElementById('firma_digital_empleado').value = document.getElementById('signatureCanvas').toDataURL('image/png');
         }
 
-        function prepareSignature() {
-            const canvas = document.getElementById('signatureCanvas');
-            const dataURL = canvas.toDataURL('image/png');
-            document.getElementById('firma_digital_empleado').value = dataURL;
+        // Firma Técnico
+        const canvasTec = document.getElementById('signatureCanvasTec');
+        if (canvasTec) {
+            const ctxTec = canvasTec.getContext('2d');
+            let paintingTec = false;
+            function startPosTec(e) { paintingTec = true; drawTec(e); }
+            function finPosTec() { paintingTec = false; ctxTec.beginPath(); }
+            function drawTec(e) {
+                if (!paintingTec) return;
+                ctxTec.lineWidth = 2; ctxTec.lineCap = 'round'; ctxTec.strokeStyle = '#000';
+                const rect = canvasTec.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                ctxTec.lineTo(x, y); ctxTec.stroke(); ctxTec.beginPath(); ctxTec.moveTo(x, y);
+            }
+            canvasTec.addEventListener('mousedown', startPosTec);
+            canvasTec.addEventListener('mouseup', finPosTec);
+            canvasTec.addEventListener('mousemove', drawTec);
+            canvasTec.addEventListener('touchstart', startPosTec);
+            canvasTec.addEventListener('touchend', finPosTec);
+            canvasTec.addEventListener('touchmove', drawTec);
+        }
+        function clearTecnicoSignature() {
+            const canvasTec = document.getElementById('signatureCanvasTec');
+            canvasTec.getContext('2d').clearRect(0, 0, canvasTec.width, canvasTec.height);
+        }
+        function prepareTecnicoSignature() {
+            document.getElementById('firma_digital_tecnico_reg').value = document.getElementById('signatureCanvasTec').toDataURL('image/png');
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
