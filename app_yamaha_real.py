@@ -2,11 +2,10 @@ import os
 import uuid
 import pandas as pd
 from flask import Flask, render_template, request, redirect, url_for, send_file
-from werkzeug.utils import secure_filename
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-from pypdf import PdfReader
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -24,16 +23,19 @@ EXCEL_OUTPUT = 'Inventario_Corporativo_Yamaha_Final.xlsx'
 
 def inicializar_archivos():
     if not os.path.exists(DB_CSV):
-        df_init = pd.DataFrame(columns=[
+        pd.DataFrame(columns=[
             'ID_Unico', 'N_Ficha', 'Fecha', 'Sede', 'ID_Trabajador', 'Responsable', 'Area', 'Cargo', 'Correo',
             'Tipo_Equipo', 'Marca_Modelo', 'N_Serie', 'Sistema_Operativo', 'Version_SO', 'Procesador',
             'Memoria_RAM', 'Part_Number', 'Hostname', 'Direccion_IP', 'Direccion_MAC', 'Tipo_Conexion', 
-            'Punto_Red', 'Estado', 'Disco_Almacenamiento', 'Impresora_Instalada', 'Perifericos_Json',
-            'Celular_IMEI', 'Celular_MarcaModelo', 'Celular_RAM', 'Celular_Almacenamiento', 'Celular_Procesador',
-            'Celular_Telefono', 'Celular_SO', 'Celular_Accesorios', 'Celular_EstadoFisico', 'Observaciones',
-            'Firma_Tecnico', 'Firma_Digital_Tecnico', 'Firma_Empleado', 'Firma_Digital_Empleado', 'Foto_Equipo'
-        ])
-        df_init.to_csv(DB_CSV, index=False)
+            'Punto_Red', 'Estado', 'Disco_Almacenamiento', 'Impresora_Instalada',
+            'Switch_Puertos', 'Switch_Gestionable', 'Impresora_PuertoIP', 'TV_Pulgadas', 'TV_Resolucion',
+            'Incluye_Celular', 'Celular_MarcaModelo', 'Celular_IMEI', 'Celular_Telefono', 
+            'Celular_RAM', 'Celular_Almacenamiento', 'Celular_Procesador', 'Celular_SO', 
+            'Celular_Accesorios', 'Celular_EstadoFisico',
+            'Observaciones', 'Firma_Tecnico', 'Firma_Digital_Tecnico', 'Firma_Empleado', 'Firma_Digital_Empleado', 'Foto_Equipo',
+            # Campos de Baja estilo SUNAT
+            'Estado_Ficha', 'Motivo_Baja'
+        ]).to_csv(DB_CSV, index=False)
     
     if not os.path.exists(TECNICOS_CSV):
         pd.DataFrame(columns=['Nombre', 'Especialidad', 'Firma_Digital']).to_csv(TECNICOS_CSV, index=False)
@@ -43,27 +45,35 @@ def inicializar_archivos():
 
 inicializar_archivos()
 
+def generar_codigo_ficha():
+    if os.path.exists(DB_CSV):
+        df = pd.read_csv(DB_CSV)
+        siguiente_num = len(df) + 1
+    else:
+        siguiente_num = 1
+    anio_actual = datetime.now().strftime('%Y')
+    return f"INV-{anio_actual}-{siguiente_num:03d}"
+
 @app.route('/')
 def index():
     registros = []
     total_equipos = total_local = total_provincia = 0
     tecnicos = []
     empleados = []
+    siguiente_ficha = generar_codigo_ficha()
 
     if os.path.exists(DB_CSV):
         df = pd.read_csv(DB_CSV).fillna('')
         registros = df.to_dict(orient='records')
-        total_equipos = len(df)
-        total_local = len(df[df['Sede'].astype(str).str.contains('Lima|Central|San Isidro', case=False, na=False)])
+        total_equipos = len(df[df['Estado_Ficha'] != 'ANULADO'])
+        total_local = len(df[(df['Sede'].astype(str).str.contains('Lima|Central|San Isidro', case=False, na=False)) & (df['Estado_Ficha'] != 'ANULADO')])
         total_provincia = total_equipos - total_local
 
     if os.path.exists(TECNICOS_CSV):
-        df_tec = pd.read_csv(TECNICOS_CSV).fillna('')
-        tecnicos = df_tec.to_dict(orient='records')
+        tecnicos = pd.read_csv(TECNICOS_CSV).fillna('').to_dict(orient='records')
 
     if os.path.exists(EMPLEADOS_CSV):
-        df_emp = pd.read_csv(EMPLEADOS_CSV).fillna('')
-        empleados = df_emp.to_dict(orient='records')
+        empleados = pd.read_csv(EMPLEADOS_CSV).fillna('').to_dict(orient='records')
 
     return render_template('index.html', 
                            registros=registros, 
@@ -71,11 +81,12 @@ def index():
                            total_local=total_local, 
                            total_provincia=total_provincia,
                            tecnicos=tecnicos,
-                           empleados=empleados)
+                           empleados=empleados,
+                           siguiente_ficha=siguiente_ficha)
 
 @app.route('/add_manual', methods=['POST'])
 def add_manual():
-    n_ficha = request.form.get('n_ficha')
+    n_ficha = generar_codigo_ficha()
     fecha = request.form.get('fecha')
     sede = request.form.get('sede')
     id_trabajador = request.form.get('id_trabajador', '')
@@ -83,9 +94,8 @@ def add_manual():
     area = request.form.get('area', '')
     cargo = request.form.get('cargo', '')
     correo = request.form.get('correo', '')
-    tipo_equipo = request.form.get('tipo_equipo', 'Laptop')
     
-    # Datos de equipo principal / laptop
+    tipo_equipo = request.form.get('tipo_equipo', 'Laptop')
     marca_modelo = request.form.get('marca_modelo', '')
     n_serie = request.form.get('n_serie', '')
     sistema_operativo = request.form.get('sistema_operativo', '')
@@ -100,27 +110,32 @@ def add_manual():
     punto_red = request.form.get('punto_red', '')
     estado = request.form.get('estado', 'Operativo')
     
-    # Almacenamiento e Impresoras
     disco_almacenamiento = request.form.get('disco_almacenamiento', '')
     impresora_instalada = request.form.get('impresora_instalada', '')
     
-    # Celular
-    celular_imei = request.form.get('celular_imei', '')
-    celular_marcamodelo = request.form.get('celular_marcamodelo', '')
-    celular_ram = request.form.get('celular_ram', '')
-    celular_almacenamiento = request.form.get('celular_almacenamiento', '')
-    celular_procesador = request.form.get('celular_procesador', '')
-    celular_telefono = request.form.get('celular_telefono', '')
-    celular_so = request.form.get('celular_so', '')
-    celular_accesorios = request.form.get('celular_accesorios', '')
-    celular_estadofisico = request.form.get('celular_estadofisico', '')
+    switch_puertos = request.form.get('switch_puertos', '')
+    switch_gestionable = request.form.get('switch_gestionable', '')
+    impresora_puertoip = request.form.get('impresora_puertoip', '')
+    tv_pulgadas = request.form.get('tv_pulgadas', '')
+    tv_resolucion = request.form.get('tv_resolucion', '')
+
+    incluye_celular = request.form.get('incluye_celular') == 'on'
+    celular_marcamodelo = request.form.get('celular_marcamodelo', '') if incluye_celular else ''
+    celular_imei = request.form.get('celular_imei', '') if incluye_celular else ''
+    celular_telefono = request.form.get('celular_telefono', '') if incluye_celular else ''
+    celular_ram = request.form.get('celular_ram', '') if incluye_celular else ''
+    celular_almacenamiento = request.form.get('celular_almacenamiento', '') if incluye_celular else ''
+    celular_procesador = request.form.get('celular_procesador', '') if incluye_celular else ''
+    celular_so = request.form.get('celular_so', '') if incluye_celular else ''
+    celular_accesorios = request.form.get('celular_accesorios', '') if incluye_celular else ''
+    celular_estadofisico = request.form.get('celular_estadofisico', '') if incluye_celular else ''
     
     observaciones = request.form.get('observaciones', '')
     firma_tecnico = request.form.get('firma_tecnico', '')
     firma_digital_empleado = request.form.get('firma_digital_empleado', '')
     id_unico = str(uuid.uuid4())[:8]
 
-    # Buscar firma digital del técnico automáticamente desde su registro
+    # Resolver firma digital del técnico (Buscando por nombre o por imagen subida en el registro de técnicos)
     firma_digital_tecnico = ""
     if os.path.exists(TECNICOS_CSV):
         df_tec = pd.read_csv(TECNICOS_CSV).fillna('')
@@ -128,7 +143,6 @@ def add_manual():
         if not match_tec.empty:
             firma_digital_tecnico = match_tec.iloc[0]['Firma_Digital']
 
-    # Subir fotos a Cloudinary organizadas por Ficha exacta
     fotos_urls = []
     archivos = request.files.getlist('fotos_equipo')
     folder_path = f"Yamaha_Inventario/Ficha_{n_ficha}"
@@ -144,47 +158,23 @@ def add_manual():
     foto_equipo_str = ",".join(fotos_urls) if fotos_urls else "Sin foto"
 
     nuevo_registro = {
-        'ID_Unico': id_unico,
-        'N_Ficha': n_ficha,
-        'Fecha': fecha,
-        'Sede': sede,
-        'ID_Trabajador': id_trabajador,
-        'Responsable': responsable,
-        'Area': area,
-        'Cargo': cargo,
-        'Correo': correo,
-        'Tipo_Equipo': tipo_equipo,
-        'Marca_Modelo': marca_modelo,
-        'N_Serie': n_serie,
-        'Sistema_Operativo': sistema_operativo,
-        'Version_SO': version_so,
-        'Procesador': procesador,
-        'Memoria_RAM': memoria_ram,
-        'Part_Number': part_number,
-        'Hostname': hostname,
-        'Direccion_IP': direccion_ip,
-        'Direccion_MAC': direccion_mac,
-        'Tipo_Conexion': tipo_conexion,
-        'Punto_Red': punto_red,
-        'Estado': estado,
-        'Disco_Almacenamiento': disco_almacenamiento,
+        'ID_Unico': id_unico, 'N_Ficha': n_ficha, 'Fecha': fecha, 'Sede': sede,
+        'ID_Trabajador': id_trabajador, 'Responsable': responsable, 'Area': area, 'Cargo': cargo, 'Correo': correo,
+        'Tipo_Equipo': tipo_equipo, 'Marca_Modelo': marca_modelo, 'N_Serie': n_serie,
+        'Sistema_Operativo': sistema_operativo, 'Version_SO': version_so, 'Procesador': procesador,
+        'Memoria_RAM': memoria_ram, 'Part_Number': part_number, 'Hostname': hostname,
+        'Direccion_IP': direccion_ip, 'Direccion_MAC': direccion_mac, 'Tipo_Conexion': tipo_conexion,
+        'Punto_Red': punto_red, 'Estado': estado, 'Disco_Almacenamiento': disco_almacenamiento,
         'Impresora_Instalada': impresora_instalada,
-        'Perifericos_Json': '',
-        'Celular_IMEI': celular_imei,
-        'Celular_MarcaModelo': celular_marcamodelo,
-        'Celular_RAM': celular_ram,
-        'Celular_Almacenamiento': celular_almacenamiento,
-        'Celular_Procesador': celular_procesador,
-        'Celular_Telefono': celular_telefono,
-        'Celular_SO': celular_so,
-        'Celular_Accesorios': celular_accesorios,
-        'Celular_EstadoFisico': celular_estadofisico,
-        'Observaciones': observaciones,
-        'Firma_Tecnico': firma_tecnico,
-        'Firma_Digital_Tecnico': firma_digital_tecnico,
-        'Firma_Empleado': responsable,
-        'Firma_Digital_Empleado': firma_digital_empleado,
-        'Foto_Equipo': foto_equipo_str
+        'Switch_Puertos': switch_puertos, 'Switch_Gestionable': switch_gestionable,
+        'Impresora_PuertoIP': impresora_puertoip, 'TV_Pulgadas': tv_pulgadas, 'TV_Resolucion': tv_resolucion,
+        'Incluye_Celular': 'Sí' if incluye_celular else 'No',
+        'Celular_MarcaModelo': celular_marcamodelo, 'Celular_IMEI': celular_imei, 'Celular_Telefono': celular_telefono,
+        'Celular_RAM': celular_ram, 'Celular_Almacenamiento': celular_almacenamiento, 'Celular_Procesador': celular_procesador,
+        'Celular_SO': celular_so, 'Celular_Accesorios': celular_accesorios, 'Celular_EstadoFisico': celular_estadofisico,
+        'Observaciones': observaciones, 'Firma_Tecnico': firma_tecnico, 'Firma_Digital_Tecnico': firma_digital_tecnico,
+        'Firma_Empleado': responsable, 'Firma_Digital_Empleado': firma_digital_empleado, 'Foto_Equipo': foto_equipo_str,
+        'Estado_Ficha': 'ACTIVO', 'Motivo_Baja': ''
     }
 
     if os.path.exists(DB_CSV):
@@ -196,25 +186,48 @@ def add_manual():
     df.to_csv(DB_CSV, index=False)
     return redirect(url_for('index'))
 
+@app.route('/dar_baja/<id_unico>', methods=['POST'])
+def dar_baja(id_unico):
+    motivo = request.form.get('motivo_baja', 'Sin motivo especificado')
+    if os.path.exists(DB_CSV):
+        df = pd.read_csv(DB_CSV)
+        # Actualiza el estado respetando el código de la ficha original
+        df.loc[df['ID_Unico'].astype(str) == str(id_unico), 'Estado_Ficha'] = 'ANULADO'
+        df.loc[df['ID_Unico'].astype(str) == str(id_unico), 'Motivo_Baja'] = motivo
+        df.to_csv(DB_CSV, index=False)
+    return redirect(url_for('index'))
+
 @app.route('/add_personal', methods=['POST'])
 def add_personal():
     tipo = request.form.get('tipo_personal')
-    
     if tipo == 'tecnico':
-        nombre = request.form.get('nombre_tecnico')
+        nombre_tec = request.form.get('nombre_tecnico')
         especialidad = request.form.get('especialidad_tecnico', '')
-        firma_digital = request.form.get('firma_digital_tecnico_reg', '')
-        
-        nuevo_dato = {'Nombre': nombre, 'Especialidad': especialidad, 'Firma_Digital': firma_digital}
+        firma_digital_tec = request.form.get('firma_digital_tecnico_reg', '')
+
+        # O si subió un archivo PNG para la firma del técnico
+        archivo_firma = request.files.get('archivo_firma_tecnico')
+        if archivo_firma and archivo_firma.filename != '':
+            try:
+                upload_res = cloudinary.uploader.upload(archivo_firma, folder="Yamaha_Firmas_Tecnicos")
+                firma_digital_tec = upload_res.get('secure_url')
+            except Exception as e:
+                print(f"Error subiendo firma PNG: {e}")
+
+        nuevo_dato = {
+            'Nombre': nombre_tec,
+            'Especialidad': especialidad,
+            'Firma_Digital': firma_digital_tec
+        }
         file_path = TECNICOS_CSV
     else:
-        id_emp = request.form.get('id_empleado_reg')
-        nombre = request.form.get('nombre_empleado_reg')
-        area = request.form.get('area_empleado_reg')
-        cargo = request.form.get('cargo_empleado_reg')
-        correo = request.form.get('correo_empleado_reg', '')
-        
-        nuevo_dato = {'ID_Empleado': id_emp, 'Nombre': nombre, 'Area': area, 'Cargo': cargo, 'Correo': correo}
+        nuevo_dato = {
+            'ID_Empleado': request.form.get('id_empleado_reg'),
+            'Nombre': request.form.get('nombre_empleado_reg'),
+            'Area': request.form.get('area_empleado_reg'),
+            'Cargo': request.form.get('cargo_empleado_reg'),
+            'Correo': request.form.get('correo_empleado_reg', '')
+        }
         file_path = EMPLEADOS_CSV
 
     if os.path.exists(file_path):

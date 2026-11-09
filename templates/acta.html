@@ -7,17 +7,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f8f9fa; color: #333; font-size: 14px; }
-        .sheet-container { max-width: 850px; margin: 30px auto; background: #ffffff; padding: 40px; border: 1px solid #dee2e6; box-shadow: 0 0 15px rgba(0,0,0,0.05); }
-        @media print {
-            body { background-color: #ffffff; }
-            .no-print { display: none !important; }
-            .sheet-container { border: none; box-shadow: none; margin: 0; padding: 10px; max-width: 100%; }
-        }
+        body { background-color: #f8f9fa; color: #333; font-size: 13px; }
+        .sheet-container { max-width: 850px; margin: 30px auto; background: #ffffff; padding: 40px; border: 1px solid #dee2e6; box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative; }
+        @media print { .no-print { display: none !important; } .sheet-container { border: none; box-shadow: none; margin: 0; padding: 10px; max-width: 100%; } }
         .header-title { border-bottom: 2px solid #0d6efd; padding-bottom: 10px; margin-bottom: 20px; }
-        .table-custom th { background-color: #f1f3f5; width: 25%; font-size: 13px; }
-        .signature-box { border-top: 1px solid #333; margin-top: 50px; padding-top: 10px; text-align: center; }
-        .digital-sig { max-height: 70px; }
+        .table-custom th { background-color: #f1f3f5; width: 25%; font-size: 12px; }
+        .signature-box { border-top: 1px solid #333; margin-top: 40px; padding-top: 10px; text-align: center; }
+        .digital-sig { max-height: 60px; }
+        .watermark-baja { position: absolute; top: 40%; left: 15%; transform: rotate(-25deg); font-size: 80px; color: rgba(220, 53, 69, 0.2); font-weight: bold; border: 5px dashed rgba(220, 53, 69, 0.2); padding: 20px; z-index: 99; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -25,21 +22,23 @@
     <div class="container">
         <div class="row no-print my-3">
             <div class="col-12 text-end">
-                <button onclick="window.print();" class="btn btn-primary btn-sm me-2">
-                    <i class="fa-solid fa-print me-1"></i> Imprimir / Guardar PDF
-                </button>
-                <a href="/" class="btn btn-secondary btn-sm">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Volver al Inventario
-                </a>
+                <button onclick="window.print();" class="btn btn-primary btn-sm me-2"><i class="fa-solid fa-print me-1"></i> Imprimir / PDF</button>
+                <a href="/" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left me-1"></i> Volver</a>
             </div>
         </div>
 
         <div class="sheet-container">
-            <!-- ENCABEZADO OFICIAL YAMAHA -->
+            {% if item.Estado_Ficha == 'ANULADO' %}
+            <div class="watermark-baja">FICHA ANULADA (BAJA)</div>
+            {% endif %}
+
             <div class="row header-title align-items-center">
                 <div class="col-8">
                     <h4 class="text-primary mb-0"><strong>YAMAHA MOTOR</strong></h4>
-                    <p class="text-muted mb-0 small">FICHA DE INVENTARIO DE EQUIPOS TECNÓLOGICOS</p>
+                    <p class="text-muted mb-0 small">FICHA DE INVENTARIO Y CONTROL DE ACTIVOS TI</p>
+                    {% if item.Estado_Ficha == 'ANULADO' %}
+                    <span class="badge bg-danger mt-1">ESTADO: BAJA / MOTIVO: {{ item.Motivo_Baja }}</span>
+                    {% endif %}
                 </div>
                 <div class="col-4 text-end">
                     <p class="mb-0"><strong>N° de Ficha:</strong> <span class="text-danger">{{ item.N_Ficha }}</span></p>
@@ -47,174 +46,80 @@
                 </div>
             </div>
 
-            <!-- 1. DATOS DEL TRABAJADOR -->
             <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>1. DATOS DEL TRABAJADOR / RESPONSABLE</strong></h6>
             <table class="table table-bordered table-custom mb-3">
                 <tbody>
-                    <tr>
-                        <th>ID Trabajador</th>
-                        <td><code>{{ item.ID_Trabajador }}</code></td>
-                        <th>DNI / ID</th>
-                        <td>{{ item.ID_Trabajador }}</td>
-                    </tr>
-                    <tr>
-                        <th>Nombre Completo</th>
-                        <td colspan="3"><strong>{{ item.Responsable }}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Área / Dpto.</th>
-                        <td>{{ item.Area }}</td>
-                        <th>Cargo</th>
-                        <td>{{ item.Cargo }}</td>
-                    </tr>
-                    <tr>
-                        <th>Correo Corporativo</th>
-                        <td colspan="3">{{ item.Correo }}</td>
-                    </tr>
+                    <tr><th>ID Trabajador</th><td><code>{{ item.ID_Trabajador }}</code></td><th>Nombre Completo</th><td><strong>{{ item.Responsable }}</strong></td></tr>
+                    <tr><th>Área / Dpto.</th><td>{{ item.Area }}</td><th>Cargo</th><td>{{ item.Cargo }}</td></tr>
+                    <tr><th>Correo Corporativo</th><td colspan="3">{{ item.Correo }}</td></tr>
                 </tbody>
             </table>
 
-            <!-- 2. DETALLE DE EQUIPO PRINCIPAL ( SEGÚN SEA LAPTOP O CELULAR ) -->
             <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>2. DETALLE DE EQUIPO PRINCIPAL ({{ item.Tipo_Equipo }})</strong></h6>
             
-            {% if item.Tipo_Equipo == 'Celular' %}
+            {% if item.Tipo_Equipo == 'Switch' %}
             <table class="table table-bordered table-custom mb-3">
                 <tbody>
-                    <tr>
-                        <th>Tipo de Equipo</th>
-                        <td>Celular</td>
-                        <th>Marca / Modelo</th>
-                        <td>{{ item.Celular_MarcaModelo }}</td>
-                    </tr>
-                    <tr>
-                        <th>IMEI</th>
-                        <td><code>{{ item.Celular_IMEI }}</code></td>
-                        <th>N° Teléfono</th>
-                        <td>{{ item.Celular_Telefono }}</td>
-                    </tr>
-                    <tr>
-                        <th>RAM / Almacenamiento</th>
-                        <td>{{ item.Celular_RAM }} / {{ item.Celular_Almacenamiento }}</td>
-                        <th>Procesador</th>
-                        <td>{{ item.Celular_Procesador }}</td>
-                    </tr>
-                    <tr>
-                        <th>Sistema Operativo</th>
-                        <td>{{ item.Celular_SO }}</td>
-                        <th>Estado Físico</th>
-                        <td>{{ item.Celular_EstadoFisico }}</td>
-                    </tr>
-                    <tr>
-                        <th>Accesorios Entregados</th>
-                        <td colspan="3">{{ item.Celular_Accesorios }}</td>
-                    </tr>
+                    <tr><th>Tipo de Equipo</th><td>Switch de Red</td><th>Marca / Modelo</th><td>{{ item.Marca_Modelo }}</td></tr>
+                    <tr><th>N° de Serie</th><td><code>{{ item.N_Serie }}</code></td><th>Puertos / Gestión</th><td>{{ item.Switch_Puertos }} - {{ item.Switch_Gestionable }}</td></tr>
+                </tbody>
+            </table>
+            {% elif item.Tipo_Equipo == 'Impresora' %}
+            <table class="table table-bordered table-custom mb-3">
+                <tbody>
+                    <tr><th>Tipo de Equipo</th><td>Impresora</td><th>Marca / Modelo</th><td>{{ item.Marca_Modelo }}</td></tr>
+                    <tr><th>N° de Serie</th><td><code>{{ item.N_Serie }}</code></td><th>IP / ShareName</th><td>{{ item.Impresora_PuertoIP }}</td></tr>
+                </tbody>
+            </table>
+            {% elif item.Tipo_Equipo == 'TV' %}
+            <table class="table table-bordered table-custom mb-3">
+                <tbody>
+                    <tr><th>Tipo de Equipo</th><td>TV / Pantalla</td><th>Marca / Modelo</th><td>{{ item.Marca_Modelo }}</td></tr>
+                    <tr><th>N° de Serie</th><td><code>{{ item.N_Serie }}</code></td><th>Pulgadas / Resolución</th><td>{{ item.TV_Pulgadas }} - {{ item.TV_Resolucion }}</td></tr>
                 </tbody>
             </table>
             {% else %}
             <table class="table table-bordered table-custom mb-3">
                 <tbody>
-                    <tr>
-                        <th>Tipo de Equipo</th>
-                        <td>{{ item.Tipo_Equipo }}</td>
-                        <th>Sistema Operativo</th>
-                        <td>{{ item.Sistema_Operativo }} (Ver. {{ item.Version_SO }})</td>
-                    </tr>
-                    <tr>
-                        <th>Marca / Modelo</th>
-                        <td>{{ item.Marca_Modelo }}</td>
-                        <th>N° Serie</th>
-                        <td><code>{{ item.N_Serie }}</code></td>
-                    </tr>
-                    <tr>
-                        <th>Procesador</th>
-                        <td>{{ item.Procesador }}</td>
-                        <th>Memoria RAM</th>
-                        <td>{{ item.Memoria_RAM }}</td>
-                    </tr>
-                    <tr>
-                        <th>N° Part Number</th>
-                        <td>{{ item.Part_Number }}</td>
-                        <th>Hostname</th>
-                        <td>{{ item.Hostname }}</td>
-                    </tr>
-                    <tr>
-                        <th>Dirección IP</th>
-                        <td>{{ item.Direccion_IP }}</td>
-                        <th>Dirección MAC</th>
-                        <td>{{ item.Direccion_MAC }}</td>
-                    </tr>
-                    <tr>
-                        <th>Tipo Conexión</th>
-                        <td>{{ item.Tipo_Conexion }}</td>
-                        <th>Punto de Red</th>
-                        <td>{{ item.Punto_Red }}</td>
-                    </tr>
+                    <tr><th>Tipo de Equipo</th><td>{{ item.Tipo_Equipo }}</td><th>Marca / Modelo</th><td>{{ item.Marca_Modelo }}</td></tr>
+                    <tr><th>N° de Serie</th><td><code>{{ item.N_Serie }}</code></td><th>Sistema Operativo</th><td>{{ item.Sistema_Operativo }} (Ver. {{ item.Version_SO }})</td></tr>
+                    <tr><th>Procesador / RAM</th><td>{{ item.Procesador }} / {{ item.Memoria_RAM }}</td><th>IP / Hostname</th><td>{{ item.Direccion_IP }} ({{ item.Hostname }})</td></tr>
                 </tbody>
             </table>
             {% endif %}
 
-            <!-- 3. ALMACENAMIENTO E IMPRESORAS -->
-            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>3. ALMACENAMIENTO E IMPRESORAS INSTALADAS</strong></h6>
+            {% if item.Incluye_Celular == 'Sí' %}
+            <h6 class="text-dark bg-light p-2 border-start border-success border-4 mb-2"><strong>6. DETALLE DE EQUIPO CELULAR ADJUNTO</strong></h6>
             <table class="table table-bordered table-custom mb-3">
                 <tbody>
-                    <tr>
-                        <th>Disco Almacenamiento</th>
-                        <td>{{ item.Disco_Almacenamiento }}</td>
-                        <th>Impresora Instalada</th>
-                        <td>{{ item.Impresora_Instalada }}</td>
-                    </tr>
+                    <tr><th>Marca / Modelo</th><td>{{ item.Celular_MarcaModelo }}</td><th>IMEI</th><td><code>{{ item.Celular_IMEI }}</code></td></tr>
+                    <tr><th>N° Teléfono</th><td>{{ item.Celular_Telefono }}</td><th>RAM / Almacenamiento</th><td>{{ item.Celular_RAM }} / {{ item.Celular_Almacenamiento }}</td></tr>
+                    <tr><th>Sistema Operativo</th><td>{{ item.Celular_SO }}</td><th>Accesorios</th><td>{{ item.Celular_Accesorios }}</td></tr>
                 </tbody>
             </table>
+            {% endif %}
 
-            <!-- 7. OBSERVACIONES -->
-            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>7. OBSERVACIONES</strong></h6>
-            <p class="border p-2 bg-light rounded small mb-3">{{ item.Observaciones if item.Observaciones else 'Sin observaciones adicionales registradas.' }}</p>
-
-            <!-- REGISTRO FOTOGRÁFICO CLOUDINARY -->
-            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>REGISTRO FOTOGRÁFICO (CLOUDINARY)</strong></h6>
-            <div class="mb-4">
-                {% if item.Foto_Equipo and item.Foto_Equipo != 'Sin foto' and item.Foto_Equipo != 'nan' %}
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for foto_url in item.Foto_Equipo.split(',') %}
-                            <a href="{{ foto_url.strip() }}" target="_blank" class="btn btn-outline-dark btn-sm">
-                                <i class="fa-solid fa-cloud-arrow-down me-1"></i> Ver Adjunto Ficha {{ item.N_Ficha }}
-                            </a>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted small">No hay imágenes adjuntas para este registro.</p>
-                {% endif %}
-            </div>
-
-            <!-- DECLARACIÓN Y FIRMAS OFICIALES -->
-            <div class="small text-muted mb-4">
-                <em>El colaborador declara haber tomado conocimiento y conformidad del inventario de equipos y accesorios registrados en la presente ficha, cuya verificación fue realizada por el área de TI. Asimismo, se compromete a mantener la custodia y el uso adecuado de los activos asignados, conforme a las políticas de la empresa.</em>
-            </div>
+            <h6 class="text-dark bg-light p-2 border-start border-primary border-4 mb-2"><strong>7. OBSERVACIONES Y SOPORTE</strong></h6>
+            <p class="border p-2 bg-light rounded small mb-3">{{ item.Observaciones if item.Observaciones else 'Sin observaciones adicionales.' }}</p>
 
             <div class="row mt-4 pt-3">
                 <div class="col-6 text-center px-3">
                     <div class="signature-box">
-                        {% if item.Firma_Digital_Tecnico %}
-                            <img src="{{ item.Firma_Digital_Tecnico }}" class="digital-sig mb-1" alt="Firma Técnico">
-                        {% endif %}
+                        {% if item.Firma_Digital_Tecnico %}<img src="{{ item.Firma_Digital_Tecnico }}" class="digital-sig mb-1" alt="Firma Técnico">{% endif %}
                         <p class="mb-0 fw-bold">{{ item.Firma_Tecnico }}</p>
                         <small class="text-muted">Vassosp Trading EIRL<br>Responsable Soporte TI</small>
                     </div>
                 </div>
                 <div class="col-6 text-center px-3">
                     <div class="signature-box">
-                        {% if item.Firma_Digital_Empleado %}
-                            <img src="{{ item.Firma_Digital_Empleado }}" class="digital-sig mb-1" alt="Firma Trabajador">
-                        {% endif %}
+                        {% if item.Firma_Digital_Empleado %}<img src="{{ item.Firma_Digital_Empleado }}" class="digital-sig mb-1" alt="Firma Trabajador">{% endif %}
                         <p class="mb-0 fw-bold">{{ item.Responsable }}</p>
-                        <small class="text-muted">Trabajador / Responsable<br>Recíbi Conforme</small>
+                        <small class="text-muted">Trabajador / Responsable<br>Recibí Conforme</small>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
