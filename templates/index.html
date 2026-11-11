@@ -14,74 +14,94 @@
     <div class="container py-5">
         <h1 class="mb-4 text-center text-primary">Inventario Corporativo Yamaha</h1>
 
-        <!-- Formulario -->
+        <!-- Barra de Acciones y Buscador -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="GET" action="/" class="input-group">
+                    <input type="text" class="form-control" name="q" placeholder="Buscar por serie, usuario, equipo..." value="{{ busqueda or '' }}">
+                    <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                    <a href="/" class="btn btn-outline-secondary">Limpiar</a>
+                </form>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="/exportar_excel" class="btn btn-success">📥 Exportar a Excel</a>
+            </div>
+        </div>
+
+        <!-- Formulario de Registro / Edición -->
         <div class="card shadow-sm mb-5">
-            <div class="card-header bg-primary text-white">Registrar Nuevo Equipo, Periféricos y Enlaces de Fotos (Cloudinary)</div>
+            <div class="card-header bg-primary text-white">
+                {% if edit_reg %} Editando Registro N° INV-2026-{{ "%03d"|format(edit_reg.id) }} {% else %} Registrar Nuevo Equipo, Periféricos y Fotos (Cloudinary) {% endif %}
+            </div>
             <div class="card-body">
                 <form action="/guardar" method="POST" class="row g-3">
+                    {% if edit_reg %}
+                    <input type="hidden" name="id" value="{{ edit_reg.id }}">
+                    {% endif %}
+
                     <h5 class="text-secondary mt-2">1. Datos del Equipo Principal</h5>
                     <div class="col-md-4">
                         <label class="form-label">Tipo de Equipo</label>
                         <select id="tipo_equipo" name="tipo_equipo" class="form-select" required>
-                            <option value="Laptop">Laptop</option>
-                            <option value="PC">PC de Escritorio</option>
-                            <option value="Impresora">Impresora</option>
-                            <option value="Switch">Switch</option>
-                            <option value="TV">TV</option>
+                            <option value="Laptop" {% if edit_reg and edit_reg.tipo_equipo == 'Laptop' %}selected{% endif %}>Laptop</option>
+                            <option value="PC" {% if edit_reg and edit_reg.tipo_equipo == 'PC' %}selected{% endif %}>PC de Escritorio</option>
+                            <option value="Impresora" {% if edit_reg and edit_reg.tipo_equipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                            <option value="Switch" {% if edit_reg and edit_reg.tipo_equipo == 'Switch' %}selected{% endif %}>Switch</option>
+                            <option value="TV" {% if edit_reg and edit_reg.tipo_equipo == 'TV' %}selected{% endif %}>TV</option>
                         </select>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Código Patrimonial</label>
-                        <input type="text" class="form-control" name="codigo_patrimonial" required>
+                        <input type="text" class="form-control" name="codigo_patrimonial" value="{{ edit_reg.codigo_patrimonial if edit_reg else '' }}" required>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Marca</label>
-                        <input type="text" class="form-control" name="marca" required>
+                        <input type="text" class="form-control" name="marca" value="{{ edit_reg.marca if edit_reg else '' }}" required>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Modelo</label>
-                        <input type="text" class="form-control" name="modelo">
+                        <input type="text" class="form-control" name="modelo" value="{{ edit_reg.modelo if edit_reg else '' }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Nro de Serie</label>
-                        <input type="text" class="form-control" name="serie" required>
+                        <input type="text" class="form-control" name="serie" value="{{ edit_reg.serie if edit_reg else '' }}" required>
                     </div>
 
                     <div class="col-md-4" id="campo_procesador_container">
                         <label class="form-label">Procesador</label>
-                        <input type="text" class="form-control" id="procesador" name="procesador">
+                        <input type="text" class="form-control" id="procesador" name="procesador" value="{{ edit_reg.procesador if edit_reg else '' }}">
                     </div>
 
                     <div class="col-md-4" id="campo_ram_container">
                         <label class="form-label">Memoria RAM</label>
-                        <input type="text" class="form-control" id="memoria_ram" name="memoria_ram">
+                        <input type="text" class="form-control" id="memoria_ram" name="memoria_ram" value="{{ edit_reg.memoria_ram if edit_reg else '' }}">
                     </div>
 
                     <div class="col-md-4" id="campo_almacenamiento_container">
                         <label class="form-label">Almacenamiento</label>
-                        <input type="text" class="form-control" id="almacenamiento" name="almacenamiento">
+                        <input type="text" class="form-control" id="almacenamiento" name="almacenamiento" value="{{ edit_reg.almacenamiento if edit_reg else '' }}">
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Usuario Asignado</label>
-                        <input type="text" class="form-control" name="usuario_asignado" required>
+                        <label class="form-label">Usuario Asignado (Empleado)</label>
+                        <input type="text" class="form-control" name="usuario_asignado" value="{{ edit_reg.usuario_asignado if edit_reg else '' }}" required>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Área</label>
-                        <input type="text" class="form-control" name="area">
+                        <input type="text" class="form-control" name="area" value="{{ edit_reg.area if edit_reg else '' }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Sucursal</label>
                         <select name="sucursal" class="form-select">
-                            <option value="Lima">Lima</option>
-                            <option value="Iquitos">Iquitos</option>
-                            <option value="Provincias">Provincias</option>
+                            <option value="Lima" {% if edit_reg and edit_reg.sucursal == 'Lima' %}selected{% endif %}>Lima</option>
+                            <option value="Iquitos" {% if edit_reg and edit_reg.sucursal == 'Iquitos' %}selected{% endif %}>Iquitos</option>
+                            <option value="Provincias" {% if edit_reg and edit_reg.sucursal == 'Provincias' %}selected{% endif %}>Provincias</option>
                         </select>
                     </div>
 
@@ -114,28 +134,33 @@
                     <h5 class="text-secondary">7. Observaciones y Registro Fotográfico (Cloudinary)</h5>
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Observaciones de Soporte</label>
-                        <textarea class="form-control" name="observaciones_generales" rows="2" placeholder="Ej. El equipo presenta desgaste físico, le falta 02 jebes..."></textarea>
+                        <textarea class="form-control" name="observaciones_generales" rows="2">{{ edit_reg.observaciones if edit_reg else '' }}</textarea>
                     </div>
 
                     <div class="col-md-12 mb-3">
                         <label class="form-label">URLs de Fotos (Cloudinary) - <i>Escribe un enlace por línea</i></label>
-                        <textarea class="form-control" name="fotos" rows="3" placeholder="https://res.cloudinary.com/.../imagen1.jpg&#10;https://res.cloudinary.com/.../imagen2.jpg"></textarea>
+                        <textarea class="form-control" name="fotos" rows="3">{% if edit_reg and edit_reg.fotos_lista %}{{ edit_reg.fotos_lista | join('\n') }}{% endif %}</textarea>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label text-muted">Firma Responsable Soporte TI</label>
+                        <label class="form-label text-muted">Técnico Responsable Soporte TI</label>
                         <input type="text" class="form-control" value="Sandra Elizabeth Hinojosa Rodriguez" readonly>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label text-muted">Firma del Trabajador (Recí Conforme)</label>
+                        <label class="form-label text-muted">Firma del Empleado (Recí Conforme)</label>
                         <div class="firma-box">
-                            <input type="text" class="form-control border-0 text-center bg-transparent" name="firma" placeholder="Nombre o DNI para validar firma digital" required>
+                            <input type="text" class="form-control border-0 text-center bg-transparent" name="firma" value="{{ edit_reg.firma if edit_reg else '' }}" placeholder="Nombre o DNI para validar firma digital" required>
                         </div>
                     </div>
 
                     <div class="col-12 text-end mt-4">
-                        <button type="submit" class="btn btn-success px-5 py-2">Guardar y Habilitar Ficha PDF Oficial</button>
+                        {% if edit_reg %}
+                        <a href="/" class="btn btn-secondary px-4 py-2 me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-5 py-2 text-white">Actualizar Registro</button>
+                        {% else %}
+                        <button type="submit" class="btn btn-success px-5 py-2">Guardar y Habilitar Acta PDF Oficial</button>
+                        {% endif %}
                     </div>
                 </form>
             </div>
@@ -143,7 +168,7 @@
 
         <!-- TABLA DE REGISTROS -->
         <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white">Equipos Registrados y Validación PDF Oficial</div>
+            <div class="card-header bg-dark text-white">Equipos Registrados y Validación Acta / Ficha PDF Oficial</div>
             <div class="card-body table-responsive">
                 <table class="table table-striped align-middle">
                     <thead>
@@ -154,7 +179,7 @@
                             <th>Usuario / Área</th>
                             <th>Periféricos y Fotos</th>
                             <th>Estado / Firma</th>
-                            <th>Acciones PDF & Baja</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,10 +202,11 @@
                                 <small class="text-muted">Firma: <strong>{{ reg.firma }}</strong></small>
                             </td>
                             <td>
-                                <a href="/pdf/{{ reg.id }}" target="_blank" class="btn btn-sm btn-primary mb-1">📄 Ver PDF Oficial</a>
+                                <a href="/pdf/{{ reg.id }}" target="_blank" class="btn btn-sm btn-primary mb-1">📄 Acta PDF</a>
+                                <a href="/editar/{{ reg.id }}" class="btn btn-sm btn-warning mb-1 text-white">✏️ Editar</a>
                                 {% if 'BAJA' not in reg.estado %}
                                 <form action="/baja/{{ reg.id }}" method="POST" class="d-inline" onsubmit="return confirm('¿Dar de baja este equipo estilo SUNAT?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">Dar Baja</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">Baja</button>
                                 </form>
                                 {% endif %}
                             </td>
@@ -195,27 +221,35 @@
     </div>
 
     <script>
-        function agregarPeriferico() {
+        function agregarPeriferico(tipo='', marca='', modelo='', serie='', estado='Operativo', obs='') {
             const tbody = document.getElementById('perifericos_body');
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" class="form-control form-control-sm" name="periferico_tipo[]" placeholder="Teclado / Mouse" required></td>
-                <td><input type="text" class="form-control form-control-sm" name="periferico_marca[]" placeholder="Logitech"></td>
-                <td><input type="text" class="form-control form-control-sm" name="periferico_modelo[]" placeholder="Modelo"></td>
-                <td><input type="text" class="form-control form-control-sm" name="periferico_serie[]" placeholder="SN-XXXX"></td>
+                <td><input type="text" class="form-control form-control-sm" name="periferico_tipo[]" value="${tipo}" placeholder="Teclado / Mouse" required></td>
+                <td><input type="text" class="form-control form-control-sm" name="periferico_marca[]" value="${marca}" placeholder="Logitech"></td>
+                <td><input type="text" class="form-control form-control-sm" name="periferico_modelo[]" value="${modelo}" placeholder="Modelo"></td>
+                <td><input type="text" class="form-control form-control-sm" name="periferico_serie[]" value="${serie}" placeholder="SN-XXXX"></td>
                 <td>
                     <select class="form-select form-select-sm" name="periferico_estado[]">
-                        <option value="Operativo">Operativo</option>
-                        <option value="Dañado">Dañado</option>
+                        <option value="Operativo" ${estado === 'Operativo' ? 'selected' : ''}>Operativo</option>
+                        <option value="Dañado" ${estado === 'Dañado' ? 'selected' : ''}>Dañado</option>
                     </select>
                 </td>
-                <td><input type="text" class="form-control form-control-sm" name="periferico_obs[]" placeholder="Receptor USB"></td>
+                <td><input type="text" class="form-control form-control-sm" name="periferico_obs[]" value="${obs}" placeholder="Receptor USB"></td>
                 <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">X</button></td>
             `;
             tbody.appendChild(tr);
         }
 
-        window.onload = function() { agregarPeriferico(); };
+        window.onload = function() {
+            {% if edit_reg and edit_reg.perifericos_lista %}
+                {% for p in edit_reg.perifericos_lista %}
+                    agregarPeriferico("{{ p.tipo }}", "{{ p.marca }}", "{{ p.modelo }}", "{{ p.serie }}", "{{ p.estado }}", "{{ p.observaciones }}");
+                {% endfor %}
+            {% else %}
+                agregarPeriferico();
+            {% endif %}
+        };
 
         document.getElementById('tipo_equipo').addEventListener('change', function() {
             const tipo = this.value.toLowerCase();

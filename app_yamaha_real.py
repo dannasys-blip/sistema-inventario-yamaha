@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, make_response
+from flask import Flask, render_template, request, redirect, url_for, make_response, send_file
 import pandas as pd
 import os
 import json
@@ -30,31 +30,31 @@ def index():
         inicializar_csv()
     
     df = pd.read_csv(CSV_FILE)
+    
+    # Filtros de búsqueda opcionales
+    busqueda = request.args.get('q', '').lower()
+    sucursal_filtro = request.args.get('sucursal', '')
+    
+    if busqueda:
+        df = df[df.astype(str).apply(lambda x: x.str.lower().str.contains(busqueda).any(), axis=1)]
+    if sucursal_filtro:
+        df = df[df['sucursal'] == sucursal_filtro]
+
     registros = []
     for _, row in df.iterrows():
         reg = row.to_dict()
         
-        # Valores por defecto seguros para evitar errores con esquemas antiguos de CSV
+        # Valores por defecto seguros para esquemas antiguos
         if 'estado' not in reg or pd.isna(reg['estado']):
             reg['estado'] = 'Activo'
         if 'firma' not in reg or pd.isna(reg['firma']):
             reg['firma'] = 'Sin Firma'
         if 'tipo_equipo' not in reg or pd.isna(reg['tipo_equipo']):
             reg['tipo_equipo'] = 'Laptop'
-        if 'codigo_patrimonial' not in reg:
-            reg['codigo_patrimonial'] = ''
-        if 'marca' not in reg:
-            reg['marca'] = ''
-        if 'modelo' not in reg:
-            reg['modelo'] = ''
-        if 'serie' not in reg:
-            reg['serie'] = ''
-        if 'usuario_asignado' not in reg:
-            reg['usuario_asignado'] = ''
-        if 'area' not in reg:
-            reg['area'] = ''
-        if 'sucursal' not in reg:
-            reg['sucursal'] = 'Lima'
+            
+        for campo in ['codigo_patrimonial', 'marca', 'modelo', 'serie', 'usuario_asignado', 'area', 'sucursal', 'procesador', 'memoria_ram', 'almacenamiento', 'observaciones']:
+            if campo not in reg or pd.isna(reg[campo]):
+                reg[campo] = ''
 
         try:
             reg['perifericos_lista'] = json.loads(str(reg.get('perifericos', ''))) if pd.notna(reg.get('perifericos')) else []
@@ -68,19 +68,18 @@ def index():
             
         registros.append(reg)
         
-    return render_template('index.html', registros=registros)
+    return render_template('index.html', registros=registros, busqueda=busqueda, sucursal_filtro=sucursal_filtro)
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
     df = pd.read_csv(CSV_FILE)
     
-    nuevo_id = int(df['id'].max()) + 1 if not df.empty and not pd.isna(df['id'].max()) else 1
+    registro_id = request.form.get('id', '')
     tipo_equipo = request.form.get('tipo_equipo', '').strip()
     almacenamiento = request.form.get('almacenamiento', '').strip()
     procesador = request.form.get('procesador', '').strip()
     memoria_ram = request.form.get('memoria_ram', '').strip()
     
-    # Si es impresora, switch o TV, limpiamos campos de hardware internos
     if tipo_equipo.lower() in ['impresora', 'switch', 'tv']:
         almacenamiento = ''
         procesador = ''
@@ -106,12 +105,10 @@ def guardar():
                 'observaciones': obs_p[i].strip() if i < len(obs_p) else ''
             })
 
-    # Fotos (URLs o enlaces de Cloudinary)
     fotos_input = request.form.get('fotos', '').strip()
     lista_fotos = [f.strip() for f in fotos_input.split('\n') if f.strip()] if fotos_input else []
 
-    nuevo_registro = {
-        'id': nuevo_id,
+    datos_form = {
         'tipo_equipo': tipo_equipo,
         'codigo_patrimonial': request.form.get('codigo_patrimonial', '').strip(),
         'marca': request.form.get('marca', '').strip(),
@@ -129,11 +126,52 @@ def guardar():
         'fotos': json.dumps(lista_fotos),
         'firma': request.form.get('firma', '').strip()
     }
+
+    if registro_id:  # Editar existente
+        idx = df[df['id'] == int(registro_id)].index
+        if not idx.empty:
+            for k, v in datos_form.items():
+                df.loc[idx, k] = v
+    else:  # Crear nuevo
+        nuevo_id = int(df['id'].max()) + 1 if not df.empty and not pd.isna(df['id'].max()) else 1
+        datos_form['id'] = nuevo_id
+        df = pd.concat([df, pd.DataFrame([datos_form])], ignore_index=True)
     
-    df = pd.concat([df, pd.DataFrame([nuevo_registro])], ignore_index=True)
     df.to_csv(CSV_FILE, index=False)
-    
     return redirect(url_for('index'))
+
+@app.route('/editar/<int:id>')
+def editar(id):
+    df = pd.read_csv(CSV_FILE)
+    reg = df[df['id'] == id]
+    if reg.empty:
+        return redirect(url_for('index'))
+    
+    row = reg.iloc[0].to_dict()
+    try:
+        row['perifericos_lista'] = json.loads(str(row.get('perifericos', ''))) if pd.notna(row.get('perifericos')) else []
+    except:
+        row['perifericos_lista'] = []
+        
+    try:
+        row['fotos_lista'] = json.loads(str(row.get('fotos', ''))) if pd.notna(row.get('fotos')) else []
+    except:
+        row['fotos_lista'] = []
+        
+    registros = []
+    for _, r in df.iterrows():
+        rd = r.to_dict()
+        try:
+            rd['perifericos_lista'] = json.loads(str(rd.get('perifericos', ''))) if pd.notna(rd.get('perifericos')) else []
+        except:
+            rd['perifericos_lista'] = []
+        try:
+            rd['fotos_lista'] = json.loads(str(rd.get('fotos', ''))) if pd.notna(rd.get('fotos')) else []
+        except:
+            rd['fotos_lista'] = []
+        registros.append(rd)
+
+    return render_template('index.html', registros=registros, edit_reg=row)
 
 @app.route('/pdf/<int:id>')
 def generar_pdf(id):
@@ -163,14 +201,14 @@ def generar_pdf(id):
     normal_style = ParagraphStyle('NormalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.black)
     bold_style = ParagraphStyle('BoldStyle', parent=normal_style, fontName='Helvetica-Bold')
 
-    # Encabezado Oficial
-    elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
+    # Encabezado Oficial Acta / Ficha
+    elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>ACTA Y FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
     elements.append(Spacer(1, 5))
 
-    # 1. Datos del Trabajador / Responsable[cite: 3]
+    # 1. Datos del Trabajador / Responsable (Empleado)
     elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
     data_collab = [
-        [Paragraph("<b>N° Ficha:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-08", normal_style)],
+        [Paragraph("<b>N° Ficha / Acta:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-09", normal_style)],
         [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(str(row.get('usuario_asignado', '')), normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(str(row.get('area', '')), normal_style)],
         [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(str(row.get('estado', '')), normal_style)]
     ]
@@ -179,7 +217,7 @@ def generar_pdf(id):
     elements.append(t_collab)
     elements.append(Spacer(1, 6))
 
-    # 2. Detalle de Equipo Principal[cite: 3]
+    # 2. Detalle de Equipo Principal
     elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row.get('tipo_equipo', '')})", section_style))
     data_eq = [
         [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(str(row.get('tipo_equipo', '')), normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(str(row.get('codigo_patrimonial', '')), normal_style)],
@@ -192,7 +230,7 @@ def generar_pdf(id):
     elements.append(t_eq)
     elements.append(Spacer(1, 6))
 
-    # 5. Periféricos, Accesorios y Otros Activos[cite: 2, 3]
+    # 5. Periféricos, Accesorios y Otros Activos
     elements.append(Paragraph("5. PERIFÉRICOS, ACCESORIOS Y OTROS ACTIVOS ASIGNADOS", section_style))
     periph_data = [[Paragraph("<b>Tipo de Activo</b>", bold_style), Paragraph("<b>Marca</b>", bold_style), Paragraph("<b>Modelo</b>", bold_style), Paragraph("<b>N° Serie</b>", bold_style), Paragraph("<b>Estado</b>", bold_style), Paragraph("<b>Observaciones</b>", bold_style)]]
     
@@ -220,7 +258,7 @@ def generar_pdf(id):
     elements.append(t_periph)
     elements.append(Spacer(1, 6))
 
-    # 7. Observaciones[cite: 3]
+    # 7. Observaciones y Soporte
     elements.append(Paragraph("7. OBSERVACIONES Y SOPORTE", section_style))
     obs_text = row.get('observaciones', '') if str(row.get('observaciones', '')).strip() else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
     data_obs = [[Paragraph(obs_text, normal_style)]]
@@ -229,7 +267,7 @@ def generar_pdf(id):
     elements.append(t_obs)
     elements.append(Spacer(1, 6))
 
-    # Registro Fotográfico (Cloudinary)[cite: 3]
+    # Registro Fotográfico (Cloudinary)
     elements.append(Paragraph("REGISTRO FOTOGRÁFICO (CLOUDINARY)", section_style))
     foto_rows = []
     if fotos:
@@ -243,11 +281,11 @@ def generar_pdf(id):
     elements.append(t_fotos)
     elements.append(Spacer(1, 12))
 
-    # Conformidad y Firmas[cite: 1, 3]
+    # Firmas (Técnico de Soporte TI + Empleado)
     data_firmas = [
         [Paragraph("________________________________________", normal_style), Paragraph("________________________________________", normal_style)],
-        [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br>Responsable Soporte TI", normal_style), 
-         Paragraph(f"<b>{row.get('firma', '')}</b><br>Trabajador / Responsable<br><b>Recí Conforme</b>", normal_style)]
+        [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br><b>Responsable Soporte TI (Técnico)</b>", normal_style), 
+         Paragraph(f"<b>{row.get('firma', '')}</b><br>Trabajador / Responsable (Empleado)<br><b>Recí Conforme</b>", normal_style)]
     ]
     t_firmas = Table(data_firmas, colWidths=[275, 275])
     t_firmas.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
@@ -258,8 +296,18 @@ def generar_pdf(id):
     
     response = make_response(buffer.getvalue())
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'inline; filename=Ficha_INV_{row["id"]:03d}.pdf'
+    response.headers['Content-Disposition'] = f'inline; filename=Acta_Ficha_INV_{row["id"]:03d}.pdf'
     return response
+
+@app.route('/exportar_excel')
+def exportar_excel():
+    if os.path.exists(CSV_FILE):
+        df = pd.read_csv(CSV_FILE)
+        output = io.BytesIO()
+        df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='inventario_yamaha.xlsx')
+    return redirect(url_for('index'))
 
 @app.route('/baja/<int:id>', methods=['POST'])
 def baja(id):
