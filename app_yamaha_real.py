@@ -13,22 +13,30 @@ app = Flask(__name__)
 CSV_FILE = 'base_datos_yamaha_final.csv'
 
 def inicializar_csv():
+    columnas = [
+        'id', 'tipo_equipo', 'codigo_patrimonial', 'marca', 'modelo', 
+        'serie', 'procesador', 'memoria_ram', 'almacenamiento', 
+        'usuario_asignado', 'area', 'sucursal', 'estado', 'perifericos', 'observaciones', 'fotos', 'firma'
+    ]
     if not os.path.exists(CSV_FILE):
-        columnas = [
-            'id', 'tipo_equipo', 'codigo_patrimonial', 'marca', 'modelo', 
-            'serie', 'procesador', 'memoria_ram', 'almacenamiento', 
-            'usuario_asignado', 'area', 'sucursal', 'estado', 'perifericos', 'observaciones', 'fotos', 'firma'
-        ]
         df = pd.DataFrame(columns=columnas)
         df.to_csv(CSV_FILE, index=False)
+    else:
+        # Si el archivo ya existe pero le faltan columnas (como Estado_Ficha antiguo), las autocompleta de manera segura
+        df = pd.read_csv(CSV_FILE)
+        cambios = False
+        for col in columnas:
+            if col not in df.columns:
+                df[col] = ''
+                cambios = True
+        if cambios:
+            df.to_csv(CSV_FILE, index=False)
 
 inicializar_csv()
 
 @app.route('/')
 def index():
-    if not os.path.exists(CSV_FILE):
-        inicializar_csv()
-    
+    inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     
     # Filtros de búsqueda opcionales
@@ -44,7 +52,7 @@ def index():
     for _, row in df.iterrows():
         reg = row.to_dict()
         
-        # Valores por defecto seguros para esquemas antiguos
+        # Valores por defecto seguros
         if 'estado' not in reg or pd.isna(reg['estado']):
             reg['estado'] = 'Activo'
         if 'firma' not in reg or pd.isna(reg['firma']):
@@ -72,6 +80,7 @@ def index():
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
+    inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     
     registro_id = request.form.get('id', '')
@@ -142,6 +151,7 @@ def guardar():
 
 @app.route('/editar/<int:id>')
 def editar(id):
+    inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     reg = df[df['id'] == id]
     if reg.empty:
@@ -175,6 +185,7 @@ def editar(id):
 
 @app.route('/pdf/<int:id>')
 def generar_pdf(id):
+    inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     reg = df[df['id'] == id]
     if reg.empty:
@@ -201,11 +212,9 @@ def generar_pdf(id):
     normal_style = ParagraphStyle('NormalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.black)
     bold_style = ParagraphStyle('BoldStyle', parent=normal_style, fontName='Helvetica-Bold')
 
-    # Encabezado Oficial Acta / Ficha
     elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>ACTA Y FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
     elements.append(Spacer(1, 5))
 
-    # 1. Datos del Empleado / Responsable
     elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
     data_collab = [
         [Paragraph("<b>N° Ficha / Acta:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-10", normal_style)],
@@ -217,7 +226,6 @@ def generar_pdf(id):
     elements.append(t_collab)
     elements.append(Spacer(1, 6))
 
-    # 2. Detalle de Equipo Principal
     elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row.get('tipo_equipo', '')})", section_style))
     data_eq = [
         [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(str(row.get('tipo_equipo', '')), normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(str(row.get('codigo_patrimonial', '')), normal_style)],
@@ -230,7 +238,6 @@ def generar_pdf(id):
     elements.append(t_eq)
     elements.append(Spacer(1, 6))
 
-    # 5. Periféricos y Accesorios
     elements.append(Paragraph("5. PERIFÉRICOS, ACCESORIOS Y OTROS ACTIVOS ASIGNADOS", section_style))
     periph_data = [[Paragraph("<b>Tipo de Activo</b>", bold_style), Paragraph("<b>Marca</b>", bold_style), Paragraph("<b>Modelo</b>", bold_style), Paragraph("<b>N° Serie</b>", bold_style), Paragraph("<b>Estado</b>", bold_style), Paragraph("<b>Observaciones</b>", bold_style)]]
     
@@ -258,7 +265,6 @@ def generar_pdf(id):
     elements.append(t_periph)
     elements.append(Spacer(1, 6))
 
-    # 7. Observaciones y Soporte
     elements.append(Paragraph("7. OBSERVACIONES Y SOPORTE", section_style))
     obs_text = row.get('observaciones', '') if str(row.get('observaciones', '')).strip() else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
     data_obs = [[Paragraph(obs_text, normal_style)]]
@@ -267,7 +273,6 @@ def generar_pdf(id):
     elements.append(t_obs)
     elements.append(Spacer(1, 6))
 
-    # Registro Fotográfico (Cloudinary)
     elements.append(Paragraph("REGISTRO FOTOGRÁFICO (CLOUDINARY)", section_style))
     foto_rows = []
     if fotos:
@@ -281,7 +286,6 @@ def generar_pdf(id):
     elements.append(t_fotos)
     elements.append(Spacer(1, 12))
 
-    # Firmas (Técnico de Soporte TI + Empleado)
     data_firmas = [
         [Paragraph("________________________________________", normal_style), Paragraph("________________________________________", normal_style)],
         [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br><b>Responsable Soporte TI (Técnico)</b>", normal_style), 
@@ -301,6 +305,7 @@ def generar_pdf(id):
 
 @app.route('/exportar_excel')
 def exportar_excel():
+    inicializar_csv()
     if os.path.exists(CSV_FILE):
         df = pd.read_csv(CSV_FILE)
         output = io.BytesIO()
@@ -311,6 +316,7 @@ def exportar_excel():
 
 @app.route('/baja/<int:id>', methods=['POST'])
 def baja(id):
+    inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     motivo_baja = request.form.get('motivo_baja', 'Obsolescencia / Daño')
     if id in df['id'].values:
