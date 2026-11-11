@@ -205,10 +205,10 @@ def generar_pdf(id):
     elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>ACTA Y FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
     elements.append(Spacer(1, 5))
 
-    # 1. Datos del Trabajador / Responsable (Empleado)
+    # 1. Datos del Empleado / Responsable
     elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
     data_collab = [
-        [Paragraph("<b>N° Ficha / Acta:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-09", normal_style)],
+        [Paragraph("<b>N° Ficha / Acta:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-10", normal_style)],
         [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(str(row.get('usuario_asignado', '')), normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(str(row.get('area', '')), normal_style)],
         [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(str(row.get('estado', '')), normal_style)]
     ]
@@ -230,7 +230,7 @@ def generar_pdf(id):
     elements.append(t_eq)
     elements.append(Spacer(1, 6))
 
-    # 5. Periféricos, Accesorios y Otros Activos
+    # 5. Periféricos y Accesorios
     elements.append(Paragraph("5. PERIFÉRICOS, ACCESORIOS Y OTROS ACTIVOS ASIGNADOS", section_style))
     periph_data = [[Paragraph("<b>Tipo de Activo</b>", bold_style), Paragraph("<b>Marca</b>", bold_style), Paragraph("<b>Modelo</b>", bold_style), Paragraph("<b>N° Serie</b>", bold_style), Paragraph("<b>Estado</b>", bold_style), Paragraph("<b>Observaciones</b>", bold_style)]]
     
