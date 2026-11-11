@@ -1,22 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, make_response, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file
 import pandas as pd
 import os
 import json
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
+from werkzeug.utils import secure_filename
 import io
 
 app = Flask(__name__)
 
 CSV_FILE = 'base_datos_yamaha_final.csv'
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def inicializar_csv():
     columnas = [
         'id', 'tipo_equipo', 'codigo_patrimonial', 'marca', 'modelo', 
         'serie', 'procesador', 'memoria_ram', 'almacenamiento', 
-        'usuario_asignado', 'area', 'sucursal', 'estado', 'perifericos', 'observaciones', 'fotos', 'firma'
+        'usuario_asignado', 'area', 'sucursal', 'estado', 'perifericos', 
+        'observaciones', 'fotos', 'firma', 'tecnico_soporte', 
+        'celular_asignado', 'celular_numero', 'celular_modelo'
     ]
     if not os.path.exists(CSV_FILE):
         df = pd.DataFrame(columns=columnas)
@@ -47,6 +50,9 @@ def index():
         df = df[df['sucursal'] == sucursal_filtro]
 
     registros = []
+    total_celulares = 0
+    total_activos = 0
+
     for _, row in df.iterrows():
         reg = row.to_dict()
         
@@ -56,10 +62,17 @@ def index():
             reg['firma'] = 'Sin Firma'
         if 'tipo_equipo' not in reg or pd.isna(reg['tipo_equipo']):
             reg['tipo_equipo'] = 'Laptop'
+        if 'tecnico_soporte' not in reg or pd.isna(reg['tecnico_soporte']) or not str(reg['tecnico_soporte']).strip():
+            reg['tecnico_soporte'] = 'Sandra Elizabeth Hinojosa Rodriguez'
             
-        for campo in ['codigo_patrimonial', 'marca', 'modelo', 'serie', 'usuario_asignado', 'area', 'sucursal', 'procesador', 'memoria_ram', 'almacenamiento', 'observaciones']:
+        for campo in ['codigo_patrimonial', 'marca', 'modelo', 'serie', 'usuario_asignado', 'area', 'sucursal', 'procesador', 'memoria_ram', 'almacenamiento', 'observaciones', 'celular_asignado', 'celular_numero', 'celular_modelo']:
             if campo not in reg or pd.isna(reg[campo]):
                 reg[campo] = ''
+
+        if 'BAJA' not in str(reg['estado']).upper():
+            total_activos += 1
+        if str(reg.get('celular_asignado', '')).strip().lower() in ['si', 'sí', 'true', '1']:
+            total_celulares += 1
 
         try:
             reg['perifericos_lista'] = json.loads(str(reg.get('perifericos', ''))) if pd.notna(reg.get('perifericos')) else []
@@ -73,7 +86,13 @@ def index():
             
         registros.append(reg)
         
-    return render_template('index.html', registros=registros, busqueda=busqueda, sucursal_filtro=sucursal_filtro)
+    metricas = {
+        'total': len(registros),
+        'activos': total_activos,
+        'celulares': total_celulares
+    }
+        
+    return render_template('index.html', registros=registros, busqueda=busqueda, sucursal_filtro=sucursal_filtro, metricas=metricas)
 
 @app.route('/guardar', methods=['POST'])
 def guardar():
@@ -86,7 +105,7 @@ def guardar():
     procesador = request.form.get('procesador', '').strip()
     memoria_ram = request.form.get('memoria_ram', '').strip()
     
-    if tipo_equipo.lower() in ['impresora', 'switch', 'tv']:
+    if tipo_equipo.lower() in ['impresora', 'switch', 'tv', 'scanner-pda']:
         almacenamiento = ''
         procesador = ''
         memoria_ram = ''
@@ -110,8 +129,23 @@ def guardar():
                 'observaciones': obs_p[i].strip() if i < len(obs_p) else ''
             })
 
-    fotos_input = request.form.get('fotos', '').strip()
-    lista_fotos = [f.strip() for f in fotos_input.split('\n') if f.strip()] if fotos_input else []
+    lista_fotos = []
+    if registro_id:
+        reg_old = df[df['id'] == int(registro_id)]
+        if not reg_old.empty:
+            try:
+                lista_fotos = json.loads(str(reg_old.iloc[0].get('fotos', '')))
+            except:
+                lista_fotos = []
+
+    archivos_fotos = request.files.getlist('fotos_archivos')
+    for archivo in archivos_fotos:
+        if archivo and archivo.filename != '':
+            filename = secure_filename(archivo.filename)
+            filename_final = f"eq_{registro_id}_{filename}" if registro_id else f"eq_new_{filename}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename_final)
+            archivo.save(filepath)
+            lista_fotos.append(f"/static/uploads/{filename_final}")
 
     datos_form = {
         'tipo_equipo': tipo_equipo,
@@ -129,7 +163,11 @@ def guardar():
         'perifericos': json.dumps(lista_perifericos),
         'observaciones': request.form.get('observaciones_generales', '').strip(),
         'fotos': json.dumps(lista_fotos),
-        'firma': request.form.get('firma', '').strip()
+        'firma': request.form.get('firma', '').strip(),
+        'tecnico_soporte': request.form.get('tecnico_soporte', 'Sandra Elizabeth Hinojosa Rodriguez').strip(),
+        'celular_asignado': request.form.get('celular_asignado', 'No').strip(),
+        'celular_numero': request.form.get('celular_numero', '').strip(),
+        'celular_modelo': request.form.get('celular_modelo', '').strip()
     }
 
     if registro_id:
@@ -144,6 +182,75 @@ def guardar():
     
     df.to_csv(CSV_FILE, index=False)
     return redirect(url_for('index'))
+
+@app.route('/importar_masivo', methods=['POST'])
+def importar_masivo():
+    inicializar_csv()
+    archivo = request.files.get('archivo_excel')
+    if not archivo or archivo.filename == '':
+        return redirect(url_for('index'))
+    
+    try:
+        df_subido = pd.read_excel(archivo)
+        df_actual = pd.read_csv(CSV_FILE)
+        
+        nuevo_id_base = int(df_actual['id'].max()) + 1 if not df_actual.empty and not pd.isna(df_actual['id'].max()) else 1
+        
+        nuevos_registros = []
+        for idx, row in df_subido.iterrows():
+            reg = {
+                'id': nuevo_id_base + idx,
+                'tipo_equipo': str(row.get('tipo_equipo', 'Laptop')),
+                'codigo_patrimonial': str(row.get('codigo_patrimonial', 'PAT-000')),
+                'marca': str(row.get('marca', 'Yamaha')),
+                'modelo': str(row.get('modelo', '')),
+                'serie': str(row.get('serie', 'SN-000')),
+                'procesador': str(row.get('procesador', '')),
+                'memoria_ram': str(row.get('memoria_ram', '')),
+                'almacenamiento': str(row.get('almacenamiento', '')),
+                'usuario_asignado': str(row.get('usuario_asignado', 'Sin Asignar')),
+                'area': str(row.get('area', 'General')),
+                'sucursal': str(row.get('sucursal', 'Lima')),
+                'estado': 'Activo',
+                'perifericos': '[]',
+                'observaciones': str(row.get('observaciones', 'Carga masiva por bloques')),
+                'fotos': '[]',
+                'firma': str(row.get('usuario_asignado', 'Validado')),
+                'tecnico_soporte': 'Sandra Elizabeth Hinojosa Rodriguez',
+                'celular_asignado': str(row.get('celular_asignado', 'No')),
+                'celular_numero': str(row.get('celular_numero', '')),
+                'celular_modelo': str(row.get('celular_modelo', ''))
+            }
+            nuevos_registros.append(reg)
+            
+        if nuevos_registros:
+            df_nuevos = pd.DataFrame(nuevos_registros)
+            df_final = pd.concat([df_actual, df_nuevos], ignore_index=True)
+            df_final.to_csv(CSV_FILE, index=False)
+            
+    except Exception as e:
+        print("Error en carga masiva:", e)
+        
+    return redirect(url_for('index'))
+
+@app.route('/plantilla_masiva')
+def plantilla_masiva():
+    columnas_plantilla = [
+        'tipo_equipo', 'codigo_patrimonial', 'marca', 'modelo', 'serie', 
+        'procesador', 'memoria_ram', 'almacenamiento', 'usuario_asignado', 
+        'area', 'sucursal', 'celular_asignado', 'celular_numero', 'celular_modelo', 'observaciones'
+    ]
+    df_plantilla = pd.DataFrame(columns=columnas_plantilla)
+    df_plantilla.loc[0] = [
+        'Laptop', 'PAT-10293', 'HP', '250 G8', 'CND8392', 
+        'Intel i3', '8GB', '256GB SSD', 'Carlos Mendoza', 
+        'Logística', 'Lima', 'No', '', '', 'Entrega conforme'
+    ]
+    
+    output = io.BytesIO()
+    df_plantilla.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)
+    return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name='plantilla_carga_masiva_yamaha.xlsx')
 
 @app.route('/editar/<int:id>')
 def editar(id):
@@ -177,7 +284,8 @@ def editar(id):
             rd['fotos_lista'] = []
         registros.append(rd)
 
-    return render_template('index.html', registros=registros, edit_reg=row)
+    metricas = {'total': len(registros), 'activos': len(registros), 'celulares': 0}
+    return render_template('index.html', registros=registros, edit_reg=row, metricas=metricas)
 
 @app.route('/pdf/<int:id>')
 def generar_pdf(id):
@@ -189,115 +297,17 @@ def generar_pdf(id):
     
     row = reg.iloc[0].to_dict()
     try:
-        perifericos = json.loads(row['perifericos']) if pd.notna(row['perifericos']) else []
+        row['perifericos_lista'] = json.loads(str(row.get('perifericos', ''))) if pd.notna(row.get('perifericos')) else []
     except:
-        perifericos = []
-
+        row['perifericos_lista'] = []
+        
     try:
-        fotos = json.loads(row['fotos']) if pd.notna(row['fotos']) else []
+        row['fotos_lista'] = json.loads(str(row.get('fotos', ''))) if pd.notna(row.get('fotos')) else []
     except:
-        fotos = []
+        row['fotos_lista'] = []
 
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    elements = []
-    
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=13, textColor=colors.HexColor('#003366'), alignment=1, spaceAfter=8)
-    section_style = ParagraphStyle('SectionStyle', parent=styles['Heading2'], fontSize=9, textColor=colors.white, backColor=colors.HexColor('#003366'), spaceAfter=4, leftIndent=4)
-    normal_style = ParagraphStyle('NormalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.black)
-    bold_style = ParagraphStyle('BoldStyle', parent=normal_style, fontName='Helvetica-Bold')
-
-    elements.append(Paragraph("<b>YAMAHA MOTOR / VASSOSP TRADING EIRL</b><br>ACTA Y FICHA DE INVENTARIO DE EQUIPOS TECNOLOGICOS", title_style))
-    elements.append(Spacer(1, 5))
-
-    elements.append(Paragraph("1. DATOS DEL TRABAJADOR / RESPONSABLE", section_style))
-    data_collab = [
-        [Paragraph("<b>N° Ficha / Acta:</b>", normal_style), Paragraph(f"INV-2026-{row['id']:03d}", normal_style), Paragraph("<b>Fecha:</b>", normal_style), Paragraph("2026-11-10", normal_style)],
-        [Paragraph("<b>Colaborador:</b>", normal_style), Paragraph(str(row.get('usuario_asignado', '')), normal_style), Paragraph("<b>Área / Dpto:</b>", normal_style), Paragraph(str(row.get('area', '')), normal_style)],
-        [Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style), Paragraph("<b>Estado:</b>", normal_style), Paragraph(str(row.get('estado', '')), normal_style)]
-    ]
-    t_collab = Table(data_collab, colWidths=[70, 200, 70, 210])
-    t_collab.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
-    elements.append(t_collab)
-    elements.append(Spacer(1, 6))
-
-    elements.append(Paragraph(f"2. DETALLE DE EQUIPO PRINCIPAL ({row.get('tipo_equipo', '')})", section_style))
-    data_eq = [
-        [Paragraph("<b>Tipo de Equipo:</b>", normal_style), Paragraph(str(row.get('tipo_equipo', '')), normal_style), Paragraph("<b>Patrimonial:</b>", normal_style), Paragraph(str(row.get('codigo_patrimonial', '')), normal_style)],
-        [Paragraph("<b>Marca / Modelo:</b>", normal_style), Paragraph(f"{row.get('marca', '')} {row.get('modelo', '')}", normal_style), Paragraph("<b>N° Serie:</b>", normal_style), Paragraph(str(row.get('serie', '')), normal_style)],
-        [Paragraph("<b>Procesador:</b>", normal_style), Paragraph(str(row.get('procesador', '')), normal_style), Paragraph("<b>Memoria RAM:</b>", normal_style), Paragraph(str(row.get('memoria_ram', '')), normal_style)],
-        [Paragraph("<b>Almacenamiento:</b>", normal_style), Paragraph(str(row.get('almacenamiento', '')), normal_style), Paragraph("<b>Sucursal:</b>", normal_style), Paragraph(str(row.get('sucursal', '')), normal_style)]
-    ]
-    t_eq = Table(data_eq, colWidths=[90, 180, 90, 190])
-    t_eq.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('PADDING', (0,0), (-1,-1), 3)]))
-    elements.append(t_eq)
-    elements.append(Spacer(1, 6))
-
-    elements.append(Paragraph("5. PERIFÉRICOS, ACCESORIOS Y OTROS ACTIVOS ASIGNADOS", section_style))
-    periph_data = [[Paragraph("<b>Tipo de Activo</b>", bold_style), Paragraph("<b>Marca</b>", bold_style), Paragraph("<b>Modelo</b>", bold_style), Paragraph("<b>N° Serie</b>", bold_style), Paragraph("<b>Estado</b>", bold_style), Paragraph("<b>Observaciones</b>", bold_style)]]
-    
-    if perifericos:
-        for p in perifericos:
-            periph_data.append([
-                Paragraph(p.get('tipo', ''), normal_style),
-                Paragraph(p.get('marca', ''), normal_style),
-                Paragraph(p.get('modelo', ''), normal_style),
-                Paragraph(p.get('serie', ''), normal_style),
-                Paragraph(p.get('estado', ''), normal_style),
-                Paragraph(p.get('observaciones', ''), normal_style)
-            ])
-    else:
-        periph_data.append([Paragraph("Ninguno", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style), Paragraph("-", normal_style)])
-
-    t_periph = Table(periph_data, colWidths=[80, 75, 85, 75, 65, 170])
-    t_periph.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.grey),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3)
-    ]))
-    elements.append(t_periph)
-    elements.append(Spacer(1, 6))
-
-    elements.append(Paragraph("7. OBSERVACIONES Y SOPORTE", section_style))
-    obs_text = row.get('observaciones', '') if str(row.get('observaciones', '')).strip() else "El equipo se entrega en óptimas condiciones operativas para el desempeño de funciones."
-    data_obs = [[Paragraph(obs_text, normal_style)]]
-    t_obs = Table(data_obs, colWidths=[550])
-    t_obs.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('PADDING', (0,0), (-1,-1), 5)]))
-    elements.append(t_obs)
-    elements.append(Spacer(1, 6))
-
-    elements.append(Paragraph("REGISTRO FOTOGRÁFICO (CLOUDINARY)", section_style))
-    foto_rows = []
-    if fotos:
-        for f in fotos:
-            foto_rows.append([Paragraph(f"• Ver Adjunto Cloudinary: <a href='{f}' color='blue'>{f}</a>", normal_style)])
-    else:
-        foto_rows.append([Paragraph("• Ver Adjunto Ficha Cloudinary (Sin enlaces adicionales registrados)", normal_style)])
-    
-    t_fotos = Table(foto_rows, colWidths=[550])
-    t_fotos.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 0.5, colors.grey), ('PADDING', (0,0), (-1,-1), 4)]))
-    elements.append(t_fotos)
-    elements.append(Spacer(1, 12))
-
-    data_firmas = [
-        [Paragraph("________________________________________", normal_style), Paragraph("________________________________________", normal_style)],
-        [Paragraph("<b>Sandra Elizabeth Hinojosa Rodriguez</b><br>Vassosp Trading EIRL<br><b>Responsable Soporte TI (Técnico)</b>", normal_style), 
-         Paragraph(f"<b>{row.get('firma', '')}</b><br>Trabajador / Responsable (Empleado)<br><b>Recí Conforme</b>", normal_style)]
-    ]
-    t_firmas = Table(data_firmas, colWidths=[275, 275])
-    t_firmas.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
-    elements.append(t_firmas)
-
-    doc.build(elements)
-    buffer.seek(0)
-    
-    response = make_response(buffer.getvalue())
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'inline; filename=Acta_Ficha_INV_{row["id"]:03d}.pdf'
-    return response
+    # Renderiza directamente tu archivo acta.html pasándole todos los datos del registro (row)
+    return render_template('acta.html', row=row)
 
 @app.route('/exportar_excel')
 def exportar_excel():

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario Yamaha - Enterprise</title>
+    <title>Sistema de Inventario Yamaha - Enterprise Bulk</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -103,9 +103,10 @@
             USER: <span class="text-white fw-bold">Soporte TI (Yamaha)</span>
         </div>
         <ul class="sidebar-menu mt-2">
-            <li><a href="#" class="active"><i class="fa-solid fa-desktop"></i> Gestión de Equipos</a></li>
+            <li><a href="#" class="active"><i class="fa-solid fa-desktop"></i> Gestión de Activos</a></li>
+            <li><a href="#carga_masiva"><i class="fa-solid fa-file-arrow-up"></i> Carga Masiva (Bloques)</a></li>
             <li><a href="/exportar_excel"><i class="fa-solid fa-file-excel"></i> Exportar Base Excel</a></li>
-            <li><a href="#tabla_registros"><i class="fa-solid fa-table-list"></i> Ver Registros Activos</a></li>
+            <li><a href="#tabla_registros"><i class="fa-solid fa-table-list"></i> Ver Base de Datos</a></li>
         </ul>
         <div class="p-3 text-center border-top border-secondary text-muted small">
             Vassosp Trading EIRL &copy; 2026
@@ -116,43 +117,64 @@
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="fw-bold text-dark m-0">Módulo de Registro y Control de Activos</h3>
-                <small class="text-muted">Gestión unificada de hardware, periféricos, Cloudinary y actas PDF</small>
+                <h3 class="fw-bold text-dark m-0">Módulo de Control y Carga Masiva de Activos</h3>
+                <small class="text-muted">Importación por bloques, formularios dinámicos, fotos locales y actas PDF</small>
             </div>
             <div>
                 <a href="/exportar_excel" class="btn btn-success btn-sm px-3 py-2"><i class="fa-solid fa-file-excel me-1"></i> Exportar a Excel</a>
             </div>
         </div>
 
-        <!-- DASHBOARD DE MÉTRICAS RÁPIDAS -->
+        <!-- DASHBOARD DE MÉTRICAS DINÁMICAS -->
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="card card-enterprise p-3 border-start border-4 border-primary">
-                    <div class="text-muted small fw-bold">EQUIPOS REGISTRADOS</div>
-                    <h3 class="fw-bold text-dark m-0 mt-1">{{ registros|length }}</h3>
+                    <div class="text-muted small fw-bold">TOTAL REGISTRADOS</div>
+                    <h3 class="fw-bold text-dark m-0 mt-1">{{ metricas.total }}</h3>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card card-enterprise p-3 border-start border-4 border-success">
-                    <div class="text-muted small fw-bold">ESTADO DEL SISTEMA</div>
-                    <span class="badge bg-success mt-2 w-50 py-1">Operativo / Cloudinary OK</span>
+                    <div class="text-muted small fw-bold">EQUIPOS ACTIVOS</div>
+                    <h3 class="fw-bold text-success m-0 mt-1">{{ metricas.activos }}</h3>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card card-enterprise p-3 border-start border-4 border-info">
-                    <div class="text-muted small fw-bold">TÉCNICO RESPONSABLE</div>
-                    <div class="text-dark fw-bold small mt-1">Sandra Elizabeth Hinojosa Rodriguez</div>
+                    <div class="text-muted small fw-bold">CELULARES ASIGNADOS</div>
+                    <h3 class="fw-bold text-info m-0 mt-1">{{ metricas.celulares }}</h3>
                 </div>
             </div>
         </div>
 
-        <!-- FORMULARIO DE INGRESO DE DATOS -->
-        <div class="card card-enterprise">
-            <div class="card-header-enterprise">
-                <span><i class="fa-solid fa-pen-to-square me-2 text-primary"></i> {% if edit_reg %} Editando Registro N° INV-2026-{{ "%03d"|format(edit_reg.id) }} {% else %} Ingreso de Nuevo Equipo y Activos {% endif %}</span>
+        <!-- SECCIÓN DE CARGA MASIVA POR BLOQUES (EXCEL) -->
+        <div class="card card-enterprise border-info" id="carga_masiva">
+            <div class="card-header-enterprise bg-light">
+                <span><i class="fa-solid fa-file-excel me-2 text-success"></i> Carga Masiva por Bloques (Empleados y Equipos)</span>
+                <a href="/plantilla_masiva" class="btn btn-outline-success btn-sm"><i class="fa-solid fa-download me-1"></i> Descargar Plantilla Excel</a>
             </div>
             <div class="card-body p-4">
-                <form action="/guardar" method="POST" class="row g-3">
+                <p class="text-muted small">
+                    Sube el archivo Excel con la data de los empleados para registrar todos los equipos automáticamente de golpe.
+                </p>
+                <form action="/importar_masivo" method="POST" enctype="multipart/form-data" class="row g-3 align-items-center">
+                    <div class="col-md-8">
+                        <input type="file" class="form-control form-control-sm" name="archivo_excel" accept=".xlsx, .xls" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-success btn-sm w-100 fw-bold"><i class="fa-solid fa-upload me-1"></i> Procesar Carga Masiva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- FORMULARIO INDIVIDUAL / EDICIÓN -->
+        <div class="card card-enterprise">
+            <div class="card-header-enterprise">
+                <span><i class="fa-solid fa-pen-to-square me-2 text-primary"></i> {% if edit_reg %} Editando Registro N° INV-2026-{{ "%03d"|format(edit_reg.id) }} {% else %} Ingreso Individual de Equipo y Activos {% endif %}</span>
+            </div>
+            <div class="card-body p-4">
+                <form action="/guardar" method="POST" enctype="multipart/form-data" class="row g-3">
                     {% if edit_reg %}
                     <input type="hidden" name="id" value="{{ edit_reg.id }}">
                     {% endif %}
@@ -162,11 +184,12 @@
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">Tipo de Equipo</label>
                         <select id="tipo_equipo" name="tipo_equipo" class="form-select form-select-sm" required>
-                            <option value="Laptop" {% if edit_reg and edit_reg.tipo_equipo == 'Laptop' %}selected{% endif %}>Laptop</option>
+                            <option value="Laptop" {% if edit_reg and edit_reg.tipo_equipo == 'Laptop' %}selected{% endif %}>Laptop / All In One</option>
                             <option value="PC" {% if edit_reg and edit_reg.tipo_equipo == 'PC' %}selected{% endif %}>PC de Escritorio</option>
+                            <option value="Celular" {% if edit_reg and edit_reg.tipo_equipo == 'Celular' %}selected{% endif %}>Celular</option>
                             <option value="Impresora" {% if edit_reg and edit_reg.tipo_equipo == 'Impresora' %}selected{% endif %}>Impresora</option>
+                            <option value="Scanner-PDA" {% if edit_reg and edit_reg.tipo_equipo == 'Scanner-PDA' %}selected{% endif %}>Scanner / PDA</option>
                             <option value="Switch" {% if edit_reg and edit_reg.tipo_equipo == 'Switch' %}selected{% endif %}>Switch</option>
-                            <option value="TV" {% if edit_reg and edit_reg.tipo_equipo == 'TV' %}selected{% endif %}>TV</option>
                         </select>
                     </div>
 
@@ -177,7 +200,7 @@
 
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">Marca</label>
-                        <input type="text" class="form-control form-control-sm" name="marca" value="{{ edit_reg.marca if edit_reg else '' }}" placeholder="Ej. HP / Dell / Lenovo" required>
+                        <input type="text" class="form-control form-control-sm" name="marca" value="{{ edit_reg.marca if edit_reg else '' }}" placeholder="Ej. HP / Samsung / Zebra" required>
                     </div>
 
                     <div class="col-md-4">
@@ -186,7 +209,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label small fw-bold">N° de Serie</label>
+                        <label class="form-label small fw-bold">N° de Serie / IMEI</label>
                         <input type="text" class="form-control form-control-sm" name="serie" value="{{ edit_reg.serie if edit_reg else '' }}" placeholder="Ej. CND8392..." required>
                     </div>
 
@@ -204,6 +227,9 @@
                         <label class="form-label small fw-bold">Almacenamiento</label>
                         <input type="text" class="form-control form-control-sm" id="almacenamiento" name="almacenamiento" value="{{ edit_reg.almacenamiento if edit_reg else '' }}" placeholder="Ej. 256GB SSD">
                     </div>
+
+                    <!-- REGISTRO Y SELECCIÓN DE EMPLEADO -->
+                    <h6 class="text-primary fw-bold mt-4 mb-3"><i class="fa-solid fa-user-tie me-1"></i> 2. Registro de Empleado y Ubicación</h6>
 
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">Usuario Asignado (Colaborador)</label>
@@ -224,10 +250,31 @@
                         </select>
                     </div>
 
+                    <!-- CELULAR CORPORATIVO CONDICIONAL -->
+                    <h6 class="text-primary fw-bold mt-4 mb-3"><i class="fa-solid fa-mobile-screen-button me-1"></i> 3. Asignación de Celular Corporativo</h6>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">¿Se le asignó Celular?</label>
+                        <select id="celular_asignado" name="celular_asignado" class="form-select form-select-sm" onchange="toggleCelularFields()">
+                            <option value="No" {% if not edit_reg or edit_reg.celular_asignado != 'Si' %}selected{% endif %}>No</option>
+                            <option value="Si" {% if edit_reg and edit_reg.celular_asignado == 'Si' %}selected{% endif %}>Sí</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 celular-campo">
+                        <label class="form-label small fw-bold">N° de Celular Corporativo</label>
+                        <input type="text" class="form-control form-control-sm celular-input" id="celular_numero" name="celular_numero" value="{{ edit_reg.celular_numero if edit_reg else '' }}" placeholder="Ej. 999888777" disabled>
+                    </div>
+
+                    <div class="col-md-4 celular-campo">
+                        <label class="form-label small fw-bold">Modelo / Marca Celular</label>
+                        <input type="text" class="form-control form-control-sm celular-input" id="celular_modelo" name="celular_modelo" value="{{ edit_reg.celular_modelo if edit_reg else '' }}" placeholder="Ej. Samsung A14" disabled>
+                    </div>
+
                     <!-- PERIFÉRICOS DINÁMICOS -->
                     <hr class="mt-4 mb-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="text-primary fw-bold m-0"><i class="fa-solid fa-keyboard me-1"></i> 2. Periféricos y Accesorios Asociados</h6>
+                        <h6 class="text-primary fw-bold m-0"><i class="fa-solid fa-keyboard me-1"></i> 4. Periféricos y Accesorios Asociados</h6>
                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarPeriferico()">+ Añadir Periférico</button>
                     </div>
 
@@ -248,18 +295,36 @@
                         </table>
                     </div>
 
-                    <!-- OBSERVACIONES Y FOTOS CLOUDINARY -->
+                    <!-- OBSERVACIONES Y FOTOS LOCALES -->
                     <hr class="mt-4 mb-3">
-                    <h6 class="text-primary fw-bold mb-3"><i class="fa-solid fa-camera me-1"></i> 3. Registro Fotográfico Cloudinary y Validación</h6>
+                    <h6 class="text-primary fw-bold mb-3"><i class="fa-solid fa-camera me-1"></i> 5. Registro Fotográfico Local y Técnicos</h6>
                     
                     <div class="col-md-12 mb-3">
-                        <label class="form-label small fw-bold">URLs de Fotos (Cloudinary) — <span class="text-muted fw-normal">Pega un enlace por línea para conservar los links de evidencia</span></label>
-                        <textarea class="form-control form-control-sm" name="fotos" rows="2" placeholder="https://res.cloudinary.com/.../image/upload/...">{% if edit_reg and edit_reg.fotos_lista %}{{ edit_reg.fotos_lista | join('\n') }}{% endif %}</textarea>
+                        <label class="form-label small fw-bold">Subir Fotos del Equipo (Acceso Local / Múltiples Archivos)</label>
+                        <input type="file" class="form-control form-control-sm" name="fotos_archivos" multiple accept="image/*">
+                        {% if edit_reg and edit_reg.fotos_lista %}
+                        <div class="mt-2">
+                            <small class="text-success fw-bold">Fotos actuales guardadas:</small>
+                            <ul class="small m-0">
+                                {% for foto in edit_reg.fotos_lista %}
+                                <li><a href="{{ foto }}" target="_blank">{{ foto }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label small fw-bold">Observaciones de Soporte</label>
+                        <textarea class="form-control form-control-sm" name="observaciones_generales" rows="2">{{ edit_reg.observaciones if edit_reg else '' }}</textarea>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold text-muted">Técnico Responsable Soporte TI</label>
-                        <input type="text" class="form-control form-control-sm bg-light" value="Sandra Elizabeth Hinojosa Rodriguez" readonly>
+                        <label class="form-label small fw-bold">Técnico Responsable Soporte TI</label>
+                        <select name="tecnico_soporte" class="form-select form-select-sm">
+                            <option value="Sandra Elizabeth Hinojosa Rodriguez" {% if not edit_reg or edit_reg.tecnico_soporte == 'Sandra Elizabeth Hinojosa Rodriguez' %}selected{% endif %}>Sandra Elizabeth Hinojosa Rodriguez (Líder TI)</option>
+                            <option value="Soporte Técnico Yamaha" {% if edit_reg and edit_reg.tecnico_soporte == 'Soporte Técnico Yamaha' %}selected{% endif %}>Soporte Técnico Yamaha</option>
+                        </select>
                     </div>
 
                     <div class="col-md-6">
@@ -299,7 +364,7 @@
                                 <th>Equipo / Patrimonial</th>
                                 <th>Detalle Hardware</th>
                                 <th>Colaborador / Área</th>
-                                <th>Periféricos & Fotos</th>
+                                <th>Celular & Periféricos</th>
                                 <th>Estado / Firma</th>
                                 <th class="text-center">Acciones / PDF</th>
                             </tr>
@@ -321,8 +386,11 @@
                                     <span class="text-muted">{{ reg.area }} ({{ reg.sucursal }})</span>
                                 </td>
                                 <td>
+                                    {% if reg.celular_asignado == 'Si' %}
+                                    <span class="badge bg-info text-dark">📱 Cel: {{ reg.celular_numero }}</span><br>
+                                    {% endif %}
                                     <span class="text-primary fw-bold">Periféricos: {{ reg.perifericos_lista|length }}</span><br>
-                                    <span class="text-success">📷 {{ reg.fotos_lista|length }} foto(s) Cloudinary</span>
+                                    <span class="text-success">📷 {{ reg.fotos_lista|length }} foto(s) local(es)</span>
                                 </td>
                                 <td>
                                     <span class="badge {% if 'BAJA' in reg.estado %}bg-danger{% else %}bg-success{% endif %}">{{ reg.estado }}</span><br>
@@ -351,6 +419,21 @@
     </div>
 
     <script>
+        function toggleCelularFields() {
+            const asignado = document.getElementById('celular_asignado').value;
+            const inputs = document.querySelectorAll('.celular-input');
+            inputs.forEach(input => {
+                if (asignado === 'Si') {
+                    input.removeAttribute('disabled');
+                    input.setAttribute('required', 'required');
+                } else {
+                    input.removeAttribute('required');
+                    input.setAttribute('disabled', 'disabled');
+                    input.value = '';
+                }
+            });
+        }
+
         function agregarPeriferico(tipo='', marca='', modelo='', serie='', estado='Operativo', obs='') {
             const tbody = document.getElementById('perifericos_body');
             const tr = document.createElement('tr');
@@ -372,6 +455,7 @@
         }
 
         window.onload = function() {
+            toggleCelularFields();
             {% if edit_reg and edit_reg.perifericos_lista %}
                 {% for p in edit_reg.perifericos_lista %}
                     agregarPeriferico("{{ p.tipo }}", "{{ p.marca }}", "{{ p.modelo }}", "{{ p.serie }}", "{{ p.estado }}", "{{ p.observaciones }}");
@@ -387,7 +471,7 @@
             const contRam = document.getElementById('campo_ram_container');
             const contProc = document.getElementById('campo_procesador_container');
             
-            if (['impresora', 'switch', 'tv'].includes(tipo)) {
+            if (['impresora', 'switch', 'tv', 'scanner-pda'].includes(tipo)) {
                 contAlm.style.display = 'none';
                 contRam.style.display = 'none';
                 contProc.style.display = 'none';
