@@ -22,7 +22,6 @@ def inicializar_csv():
         df = pd.DataFrame(columns=columnas)
         df.to_csv(CSV_FILE, index=False)
     else:
-        # Si el archivo ya existe pero le faltan columnas (como Estado_Ficha antiguo), las autocompleta de manera segura
         df = pd.read_csv(CSV_FILE)
         cambios = False
         for col in columnas:
@@ -39,7 +38,6 @@ def index():
     inicializar_csv()
     df = pd.read_csv(CSV_FILE)
     
-    # Filtros de búsqueda opcionales
     busqueda = request.args.get('q', '').lower()
     sucursal_filtro = request.args.get('sucursal', '')
     
@@ -52,7 +50,6 @@ def index():
     for _, row in df.iterrows():
         reg = row.to_dict()
         
-        # Valores por defecto seguros
         if 'estado' not in reg or pd.isna(reg['estado']):
             reg['estado'] = 'Activo'
         if 'firma' not in reg or pd.isna(reg['firma']):
@@ -94,7 +91,6 @@ def guardar():
         procesador = ''
         memoria_ram = ''
 
-    # Periféricos dinámicos
     tipos_p = request.form.getlist('periferico_tipo[]')
     marcas_p = request.form.getlist('periferico_marca[]')
     modelos_p = request.form.getlist('periferico_modelo[]')
@@ -136,12 +132,12 @@ def guardar():
         'firma': request.form.get('firma', '').strip()
     }
 
-    if registro_id:  # Editar existente
+    if registro_id:
         idx = df[df['id'] == int(registro_id)].index
         if not idx.empty:
             for k, v in datos_form.items():
                 df.loc[idx, k] = v
-    else:  # Crear nuevo
+    else:
         nuevo_id = int(df['id'].max()) + 1 if not df.empty and not pd.isna(df['id'].max()) else 1
         datos_form['id'] = nuevo_id
         df = pd.concat([df, pd.DataFrame([datos_form])], ignore_index=True)
